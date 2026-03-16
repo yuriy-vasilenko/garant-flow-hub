@@ -24,7 +24,7 @@ export const products: Product[] = [
     categorySlug: 'nasosy',
     price: 8500,
     status: 'available',
-    image: pumpImg,
+    image: pumpGrundfosUps,
     specs: {
       'Производитель': 'Grundfos',
       'Тип': 'Циркуляционный',
