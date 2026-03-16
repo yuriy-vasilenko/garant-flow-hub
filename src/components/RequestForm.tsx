@@ -74,9 +74,9 @@ export const RequestForm = ({ productTitle, compact }: RequestFormProps) => {
         rows={3}
         className="bg-card resize-none"
       />
-      <Button type="submit" className="w-full gap-2">
-        <Send className="w-4 h-4" />
-        Отправить заявку
+      <Button type="submit" className="w-full gap-2" disabled={loading}>
+        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+        {loading ? 'Отправка...' : 'Отправить заявку'}
       </Button>
     </form>
   );
