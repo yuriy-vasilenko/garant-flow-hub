@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, CheckCircle2 } from 'lucide-react';
+import { Send, CheckCircle2, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface RequestFormProps {
   productTitle?: string;
@@ -11,10 +13,28 @@ interface RequestFormProps {
 
 export const RequestForm = ({ productTitle, compact }: RequestFormProps) => {
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ name: '', phone: '', comment: productTitle ? `Интересует: ${productTitle}` : '' });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+
+    const { error } = await supabase.from('contact_requests').insert({
+      name: form.name.trim(),
+      phone: form.phone.trim(),
+      comment: form.comment.trim() || null,
+      product_title: productTitle || null,
+    });
+
+    setLoading(false);
+
+    if (error) {
+      toast.error('Не удалось отправить заявку. Попробуйте позже.');
+      console.error('Request submit error:', error);
+      return;
+    }
+
     setSubmitted(true);
     setTimeout(() => setSubmitted(false), 4000);
     setForm({ name: '', phone: '', comment: '' });
