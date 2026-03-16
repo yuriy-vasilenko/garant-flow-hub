@@ -185,7 +185,7 @@ export const products: Product[] = [
     categorySlug: 'emkosti',
     price: 4200,
     status: 'available',
-    image: tankImg,
+    image: tankHydro50,
     specs: {
       'Производитель': 'Джилекс',
       'Тип': 'Гидроаккумулятор',
