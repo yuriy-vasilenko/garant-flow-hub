@@ -1,21 +1,19 @@
 import { Product } from '@/types/product';
-import pumpImg from '@/assets/products/pump-circulation.png';
-import boilerImg from '@/assets/products/boiler-gas.png';
-import radiatorImg from '@/assets/products/radiator-steel.png';
-import waterHeaterImg from '@/assets/products/water-heater.png';
-import tankImg from '@/assets/products/tank-expansion.png';
-import plumbingImg from '@/assets/products/plumbing-fittings.png';
-import filterImg from '@/assets/products/water-filter.png';
-
-const categoryImages: Record<string, string> = {
-  nasosy: pumpImg,
-  kotly: boilerImg,
-  radiatory: radiatorImg,
-  vodonagrevateli: waterHeaterImg,
-  emkosti: tankImg,
-  santehnika: plumbingImg,
-  vodopodgotovka: filterImg,
-};
+import pumpGrundfosUps from '@/assets/products/pump-grundfos-ups.png';
+import pumpWiloStar from '@/assets/products/pump-wilo-star.png';
+import pumpGrundfosSq from '@/assets/products/pump-grundfos-sq.png';
+import boilerBaxi from '@/assets/products/boiler-baxi-eco.png';
+import boilerBuderus from '@/assets/products/boiler-buderus.png';
+import radiatorRifar from '@/assets/products/radiator-rifar.png';
+import radiatorRoyalThermo from '@/assets/products/radiator-royal-thermo.png';
+import heaterAriston from '@/assets/products/heater-ariston.png';
+import heaterElectrolux from '@/assets/products/heater-electrolux.png';
+import heaterBosch from '@/assets/products/heater-bosch-wr.png';
+import tankHydro50 from '@/assets/products/tank-hydro-50.png';
+import tankWester24 from '@/assets/products/tank-wester-24.png';
+import filterGeyser from '@/assets/products/filter-geyser.png';
+import valveValtec from '@/assets/products/valve-valtec.png';
+import pipePprValtec from '@/assets/products/pipe-ppr-valtec.png';
 
 export const products: Product[] = [
   {
