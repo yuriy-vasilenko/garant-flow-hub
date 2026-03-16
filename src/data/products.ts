@@ -45,7 +45,7 @@ export const products: Product[] = [
     categorySlug: 'nasosy',
     price: 6200,
     status: 'available',
-    image: pumpImg,
+    image: pumpWiloStar,
     specs: {
       'Производитель': 'Wilo',
       'Тип': 'Циркуляционный',
