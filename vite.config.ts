@@ -5,6 +5,8 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  // базовый путь для GitHub Pages: https://yuriy-vasilenko.github.io/garant-flow-hub/
+  base: "/garant-flow-hub/",
   server: {
     host: "::",
     port: 8080,
