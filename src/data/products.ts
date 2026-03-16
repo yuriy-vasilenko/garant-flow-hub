@@ -223,7 +223,7 @@ export const products: Product[] = [
     categorySlug: 'vodopodgotovka',
     price: 11500,
     status: 'available',
-    image: filterImg,
+    image: filterGeyser,
     specs: {
       'Производитель': 'Гейзер',
       'Тип': 'Обратный осмос',
