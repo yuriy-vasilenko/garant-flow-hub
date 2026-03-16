@@ -261,7 +261,7 @@ export const products: Product[] = [
     category: 'Насосы',
     categorySlug: 'nasosy',
     status: 'check',
-    image: pumpImg,
+    image: pumpGrundfosSq,
     specs: {
       'Производитель': 'Grundfos',
       'Тип': 'Скважинный',
