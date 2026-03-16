@@ -1,4 +1,21 @@
 import { Product } from '@/types/product';
+import pumpImg from '@/assets/products/pump-circulation.png';
+import boilerImg from '@/assets/products/boiler-gas.png';
+import radiatorImg from '@/assets/products/radiator-steel.png';
+import waterHeaterImg from '@/assets/products/water-heater.png';
+import tankImg from '@/assets/products/tank-expansion.png';
+import plumbingImg from '@/assets/products/plumbing-fittings.png';
+import filterImg from '@/assets/products/water-filter.png';
+
+const categoryImages: Record<string, string> = {
+  nasosy: pumpImg,
+  kotly: boilerImg,
+  radiatory: radiatorImg,
+  vodonagrevateli: waterHeaterImg,
+  emkosti: tankImg,
+  santehnika: plumbingImg,
+  vodopodgotovka: filterImg,
+};
 
 export const products: Product[] = [
   {
@@ -9,7 +26,7 @@ export const products: Product[] = [
     categorySlug: 'nasosy',
     price: 8500,
     status: 'available',
-    image: '/placeholder.svg',
+    image: pumpImg,
     specs: {
       'Производитель': 'Grundfos',
       'Тип': 'Циркуляционный',
@@ -30,7 +47,7 @@ export const products: Product[] = [
     categorySlug: 'nasosy',
     price: 6200,
     status: 'available',
-    image: '/placeholder.svg',
+    image: pumpImg,
     specs: {
       'Производитель': 'Wilo',
       'Тип': 'Циркуляционный',
@@ -50,7 +67,7 @@ export const products: Product[] = [
     categorySlug: 'kotly',
     price: 42000,
     status: 'available',
-    image: '/placeholder.svg',
+    image: boilerImg,
     specs: {
       'Производитель': 'Baxi',
       'Тип': 'Настенный двухконтурный',
@@ -71,7 +88,7 @@ export const products: Product[] = [
     categorySlug: 'kotly',
     price: 48500,
     status: 'check',
-    image: '/placeholder.svg',
+    image: boilerImg,
     specs: {
       'Производитель': 'Buderus',
       'Тип': 'Настенный двухконтурный',
@@ -90,7 +107,7 @@ export const products: Product[] = [
     categorySlug: 'radiatory',
     price: 7600,
     status: 'available',
-    image: '/placeholder.svg',
+    image: radiatorImg,
     specs: {
       'Производитель': 'Rifar',
       'Тип': 'Биметаллический',
@@ -111,7 +128,7 @@ export const products: Product[] = [
     categorySlug: 'radiatory',
     price: 6800,
     status: 'available',
-    image: '/placeholder.svg',
+    image: radiatorImg,
     specs: {
       'Производитель': 'Royal Thermo',
       'Тип': 'Алюминиевый',
@@ -130,7 +147,7 @@ export const products: Product[] = [
     categorySlug: 'vodonagrevateli',
     price: 14500,
     status: 'available',
-    image: '/placeholder.svg',
+    image: waterHeaterImg,
     specs: {
       'Производитель': 'Ariston',
       'Тип': 'Накопительный',
@@ -151,7 +168,7 @@ export const products: Product[] = [
     categorySlug: 'vodonagrevateli',
     price: 18900,
     status: 'check',
-    image: '/placeholder.svg',
+    image: waterHeaterImg,
     specs: {
       'Производитель': 'Electrolux',
       'Тип': 'Накопительный',
@@ -170,7 +187,7 @@ export const products: Product[] = [
     categorySlug: 'emkosti',
     price: 4200,
     status: 'available',
-    image: '/placeholder.svg',
+    image: tankImg,
     specs: {
       'Производитель': 'Джилекс',
       'Тип': 'Гидроаккумулятор',
@@ -190,7 +207,7 @@ export const products: Product[] = [
     categorySlug: 'emkosti',
     price: 2800,
     status: 'available',
-    image: '/placeholder.svg',
+    image: tankImg,
     specs: {
       'Производитель': 'Wester',
       'Тип': 'Расширительный бак',
@@ -208,7 +225,7 @@ export const products: Product[] = [
     categorySlug: 'vodopodgotovka',
     price: 11500,
     status: 'available',
-    image: '/placeholder.svg',
+    image: filterImg,
     specs: {
       'Производитель': 'Гейзер',
       'Тип': 'Обратный осмос',
@@ -228,7 +245,7 @@ export const products: Product[] = [
     categorySlug: 'santehnika',
     price: 450,
     status: 'available',
-    image: '/placeholder.svg',
+    image: plumbingImg,
     specs: {
       'Производитель': 'Valtec',
       'Тип': 'Шаровой кран',
@@ -246,7 +263,7 @@ export const products: Product[] = [
     category: 'Насосы',
     categorySlug: 'nasosy',
     status: 'check',
-    image: '/placeholder.svg',
+    image: pumpImg,
     specs: {
       'Производитель': 'Grundfos',
       'Тип': 'Скважинный',
@@ -265,7 +282,7 @@ export const products: Product[] = [
     categorySlug: 'vodonagrevateli',
     price: 16800,
     status: 'available',
-    image: '/placeholder.svg',
+    image: waterHeaterImg,
     specs: {
       'Производитель': 'Bosch',
       'Тип': 'Проточный газовый',
@@ -285,7 +302,7 @@ export const products: Product[] = [
     categorySlug: 'santehnika',
     price: 95,
     status: 'available',
-    image: '/placeholder.svg',
+    image: plumbingImg,
     specs: {
       'Производитель': 'Valtec',
       'Тип': 'Полипропиленовая армированная',
