@@ -126,7 +126,7 @@ export const products: Product[] = [
     categorySlug: 'radiatory',
     price: 6800,
     status: 'available',
-    image: radiatorImg,
+    image: radiatorRoyalThermo,
     specs: {
       'Производитель': 'Royal Thermo',
       'Тип': 'Алюминиевый',
