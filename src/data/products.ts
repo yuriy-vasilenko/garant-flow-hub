@@ -145,7 +145,7 @@ export const products: Product[] = [
     categorySlug: 'vodonagrevateli',
     price: 14500,
     status: 'available',
-    image: waterHeaterImg,
+    image: heaterAriston,
     specs: {
       'Производитель': 'Ariston',
       'Тип': 'Накопительный',
