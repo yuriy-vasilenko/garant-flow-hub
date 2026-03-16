@@ -243,7 +243,7 @@ export const products: Product[] = [
     categorySlug: 'santehnika',
     price: 450,
     status: 'available',
-    image: plumbingImg,
+    image: valveValtec,
     specs: {
       'Производитель': 'Valtec',
       'Тип': 'Шаровой кран',
