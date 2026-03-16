@@ -205,7 +205,7 @@ export const products: Product[] = [
     categorySlug: 'emkosti',
     price: 2800,
     status: 'available',
-    image: tankImg,
+    image: tankWester24,
     specs: {
       'Производитель': 'Wester',
       'Тип': 'Расширительный бак',
