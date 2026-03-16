@@ -105,7 +105,7 @@ export const products: Product[] = [
     categorySlug: 'radiatory',
     price: 7600,
     status: 'available',
-    image: radiatorImg,
+    image: radiatorRifar,
     specs: {
       'Производитель': 'Rifar',
       'Тип': 'Биметаллический',
