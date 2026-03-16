@@ -280,7 +280,7 @@ export const products: Product[] = [
     categorySlug: 'vodonagrevateli',
     price: 16800,
     status: 'available',
-    image: waterHeaterImg,
+    image: heaterBosch,
     specs: {
       'Производитель': 'Bosch',
       'Тип': 'Проточный газовый',
