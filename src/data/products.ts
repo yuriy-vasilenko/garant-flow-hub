@@ -300,7 +300,7 @@ export const products: Product[] = [
     categorySlug: 'santehnika',
     price: 95,
     status: 'available',
-    image: plumbingImg,
+    image: pipePprValtec,
     specs: {
       'Производитель': 'Valtec',
       'Тип': 'Полипропиленовая армированная',
