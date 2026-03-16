@@ -166,7 +166,7 @@ export const products: Product[] = [
     categorySlug: 'vodonagrevateli',
     price: 18900,
     status: 'check',
-    image: waterHeaterImg,
+    image: heaterElectrolux,
     specs: {
       'Производитель': 'Electrolux',
       'Тип': 'Накопительный',
