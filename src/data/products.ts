@@ -65,7 +65,7 @@ export const products: Product[] = [
     categorySlug: 'kotly',
     price: 42000,
     status: 'available',
-    image: boilerImg,
+    image: boilerBaxi,
     specs: {
       'Производитель': 'Baxi',
       'Тип': 'Настенный двухконтурный',
