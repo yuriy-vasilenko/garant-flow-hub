@@ -16,6 +16,7 @@ import Guarantees from "./pages/Guarantees";
 import NotFound from "./pages/NotFound";
 import Cart from "./pages/Cart";
 import { CartProvider } from "./context/CartContext";
+import { ScrollToTop } from "./components/ScrollToTop";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter basename="/garant-flow-hub">
+          <ScrollToTop />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/catalog" element={<Catalog />} />
