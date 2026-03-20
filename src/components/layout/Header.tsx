@@ -2,6 +2,7 @@ import { FormEvent, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Send, Menu, X, Phone, Search, ShoppingCart } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { useCart } from '@/context/CartContext';
 
 const navLinks = [
   { to: '/', label: 'Главная' },
@@ -16,6 +17,7 @@ export const Header = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const location = useLocation();
   const navigate = useNavigate();
+  const { totalItems } = useCart();
 
   const submitSearch = (e: FormEvent) => {
     e.preventDefault();
@@ -61,10 +63,15 @@ export const Header = () => {
         <div className="hidden md:flex items-center gap-2">
           <Link
             to="/cart"
-            className="inline-flex items-center gap-2 px-3 py-2 border border-border text-sm font-medium rounded-md text-foreground hover:bg-secondary transition-colors"
+            className="relative inline-flex items-center gap-2 px-3 py-2 border border-border text-sm font-medium rounded-md text-foreground hover:bg-secondary transition-colors"
           >
             <ShoppingCart className="w-4 h-4" />
             Корзина
+            {totalItems > 0 && (
+              <span className="absolute -top-2 -right-2 min-w-5 h-5 px-1 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">
+                {totalItems}
+              </span>
+            )}
           </Link>
           <a href="tel:+70000000000" className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
             <Phone className="w-4 h-4" />
@@ -126,7 +133,7 @@ export const Header = () => {
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              Корзина
+              Корзина {totalItems > 0 ? `(${totalItems})` : ''}
             </Link>
           </nav>
           <div className="flex gap-2 pt-2">

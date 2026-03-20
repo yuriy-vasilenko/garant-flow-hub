@@ -15,31 +15,34 @@ import HowToOrder from "./pages/HowToOrder";
 import Guarantees from "./pages/Guarantees";
 import NotFound from "./pages/NotFound";
 import Cart from "./pages/Cart";
+import { CartProvider } from "./context/CartContext";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter basename="/garant-flow-hub">
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/catalog" element={<Catalog />} />
-          <Route path="/catalog/:slug" element={<ProductPage />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/delivery" element={<Delivery />} />
-          <Route path="/pickup" element={<Pickup />} />
-          <Route path="/contacts" element={<Contacts />} />
-          <Route path="/cart" element={<Cart />} />
-          <Route path="/privacy" element={<Privacy />} />
-          <Route path="/how-to-order" element={<HowToOrder />} />
-          <Route path="/guarantees" element={<Guarantees />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <CartProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter basename="/garant-flow-hub">
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/catalog" element={<Catalog />} />
+            <Route path="/catalog/:slug" element={<ProductPage />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/delivery" element={<Delivery />} />
+            <Route path="/pickup" element={<Pickup />} />
+            <Route path="/contacts" element={<Contacts />} />
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/how-to-order" element={<HowToOrder />} />
+            <Route path="/guarantees" element={<Guarantees />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </CartProvider>
   </QueryClientProvider>
 );
 

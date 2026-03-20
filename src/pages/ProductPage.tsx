@@ -4,11 +4,14 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { RequestForm } from '@/components/RequestForm';
 import { ProductCard } from '@/components/ProductCard';
 import { getProductBySlug, products } from '@/data/products';
-import { Send, Truck, MapPin, ShieldCheck } from 'lucide-react';
+import { Send, Truck, MapPin, ShieldCheck, ShoppingCart } from 'lucide-react';
+import { useCart } from '@/context/CartContext';
+import { toast } from 'sonner';
 
 const ProductPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const product = getProductBySlug(slug || '');
+  const { addToCart } = useCart();
 
   if (!product) {
     return (
@@ -61,11 +64,21 @@ const ProductPage = () => {
               <p className="text-muted-foreground leading-relaxed">{product.description}</p>
 
               <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => {
+                    addToCart(product);
+                    toast.success('Товар добавлен в корзину');
+                  }}
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-foreground font-semibold rounded-md hover:bg-primary/90 transition-colors"
+                >
+                  <ShoppingCart className="w-4 h-4" />
+                  Добавить в корзину
+                </button>
                 <a
                   href="https://t.me/garantmarketdn"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-foreground font-semibold rounded-md hover:bg-primary/90 transition-colors"
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-secondary text-secondary-foreground font-semibold rounded-md hover:bg-secondary/80 transition-colors"
                 >
                   <Send className="w-4 h-4" />
                   Написать в Telegram
