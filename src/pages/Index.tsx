@@ -80,26 +80,6 @@ const Index = () => (
       </div>
     </section>
 
-    {/* Categories */}
-    <section className="py-16">
-      <div className="container mx-auto px-4">
-        <div className="flex items-end justify-between mb-8">
-          <div>
-            <h2 className="text-2xl font-bold text-foreground">Популярные категории</h2>
-            <p className="mt-1 text-muted-foreground">Основные направления нашего ассортимента</p>
-          </div>
-          <Link to="/catalog" className="hidden sm:inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 transition-colors">
-            Все категории <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {categories.map(cat => (
-            <CategoryCard key={cat.id} {...cat} />
-          ))}
-        </div>
-      </div>
-    </section>
-
     {/* Advantages */}
     <section className="py-16 bg-card">
       <div className="container mx-auto px-4">
@@ -136,6 +116,26 @@ const Index = () => (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {featuredProducts.slice(0, 8).map(p => (
             <ProductCard key={p.id} product={p} />
+          ))}
+        </div>
+      </div>
+    </section>
+
+    {/* Categories */}
+    <section className="py-16">
+      <div className="container mx-auto px-4">
+        <div className="flex items-end justify-between mb-8">
+          <div>
+            <h2 className="text-2xl font-bold text-foreground">Популярные категории</h2>
+            <p className="mt-1 text-muted-foreground">Основные направления нашего ассортимента</p>
+          </div>
+          <Link to="/catalog" className="hidden sm:inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 transition-colors">
+            Все категории <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {categories.map(cat => (
+            <CategoryCard key={cat.id} {...cat} />
           ))}
         </div>
       </div>

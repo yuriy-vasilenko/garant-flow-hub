@@ -39,8 +39,8 @@ export const Header = () => {
               to={link.to}
               className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                 location.pathname === link.to
-                  ? 'text-primary bg-primary/5'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                  ? 'text-primary bg-primary/5 whitespace-nowrap'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary whitespace-nowrap'
               }`}
             >
               {link.label}
