@@ -1,3 +1,4 @@
+import { useLayoutEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { PageLayout, PageHeader } from '@/components/layout/PageLayout';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -12,6 +13,23 @@ const ProductPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const product = getProductBySlug(slug || '');
   const { addToCart } = useCart();
+
+  useLayoutEffect(() => {
+    const resetToTop = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    };
+
+    resetToTop();
+    const raf = requestAnimationFrame(resetToTop);
+    const timer = window.setTimeout(resetToTop, 80);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(timer);
+    };
+  }, [slug]);
 
   if (!product) {
     return (
