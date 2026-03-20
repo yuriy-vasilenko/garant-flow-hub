@@ -8,6 +8,12 @@ export const categories: Category[] = [
     description: 'Циркуляционные, скважинные, дренажные и поверхностные насосы для систем отопления и водоснабжения от ведущих производителей.',
     icon: 'Waves',
     productCount: 45,
+    subcategories: [
+      { slug: 'cirkulyacionnye', title: 'Циркуляционные' },
+      { slug: 'skvazhinnye', title: 'Скважинные' },
+      { slug: 'drenazhnye', title: 'Дренажные' },
+      { slug: 'poverhnostnye', title: 'Поверхностные' },
+    ],
   },
   {
     id: '2',
@@ -16,6 +22,11 @@ export const categories: Category[] = [
     description: 'Газовые, электрические и твердотопливные котлы для отопления частных домов и коммерческих помещений.',
     icon: 'Flame',
     productCount: 32,
+    subcategories: [
+      { slug: 'gazovye', title: 'Газовые' },
+      { slug: 'elektricheskie', title: 'Электрические' },
+      { slug: 'tverdotoplivnye', title: 'Твердотопливные' },
+    ],
   },
   {
     id: '3',
@@ -32,6 +43,10 @@ export const categories: Category[] = [
     description: 'Накопительные и проточные водонагреватели для горячего водоснабжения.',
     icon: 'Thermometer',
     productCount: 27,
+    subcategories: [
+      { slug: 'nakopitelnye', title: 'Накопительные' },
+      { slug: 'protochnye', title: 'Проточные' },
+    ],
   },
   {
     id: '5',
@@ -48,6 +63,11 @@ export const categories: Category[] = [
     description: 'Фитинги, трубы, запорная арматура и комплектующие для монтажа систем отопления и водоснабжения.',
     icon: 'Wrench',
     productCount: 124,
+    subcategories: [
+      { slug: 'truby', title: 'Трубы' },
+      { slug: 'armatura', title: 'Арматура' },
+      { slug: 'fitingi', title: 'Фитинги' },
+    ],
   },
   {
     id: '7',

@@ -6,6 +6,7 @@ export interface Product {
   title: string;
   category: string;
   categorySlug: string;
+  subcategorySlug?: string;
   price?: number;
   status: Availability;
   image: string;
@@ -15,6 +16,11 @@ export interface Product {
   featured?: boolean;
 }
 
+export interface Subcategory {
+  slug: string;
+  title: string;
+}
+
 export interface Category {
   id: string;
   slug: string;
@@ -22,5 +28,6 @@ export interface Category {
   description: string;
   icon: string;
   productCount: number;
+  subcategories?: Subcategory[];
   image?: string;
 }

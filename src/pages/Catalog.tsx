@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { PageLayout, PageHeader } from '@/components/layout/PageLayout';
 import { ProductCard } from '@/components/ProductCard';
@@ -11,36 +11,64 @@ import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger 
 const Catalog = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeCategory = searchParams.get('category') || '';
-  const [query, setQuery] = useState('');
+  const activeSubcategory = searchParams.get('sub') || '';
+  const queryFromUrl = searchParams.get('q') || '';
+  const [query, setQuery] = useState(queryFromUrl);
+
+  useEffect(() => {
+    setQuery(queryFromUrl);
+  }, [queryFromUrl]);
 
   const filtered = useMemo(() => {
     let result = query ? searchProducts(query) : products;
     if (activeCategory) {
       result = result.filter(p => p.categorySlug === activeCategory);
     }
+    if (activeSubcategory) {
+      result = result.filter(p => p.subcategorySlug === activeSubcategory);
+    }
     return result;
-  }, [query, activeCategory]);
+  }, [query, activeCategory, activeSubcategory]);
 
   const setCategory = (slug: string) => {
+    const next: Record<string, string> = {};
+    if (query) {
+      next.q = query;
+    }
     if (slug) {
-      setSearchParams({ category: slug });
+      next.category = slug;
+      setSearchParams(next);
     } else {
-      setSearchParams({});
+      setSearchParams(query ? { q: query } : {});
+    }
+  };
+
+  const setSubcategory = (slug: string) => {
+    if (!activeCategory) return;
+    if (slug) {
+      setSearchParams(query ? { category: activeCategory, sub: slug, q: query } : { category: activeCategory, sub: slug });
+    } else {
+      setSearchParams(query ? { category: activeCategory, q: query } : { category: activeCategory });
     }
   };
 
   const activeCategoryData = categories.find(c => c.slug === activeCategory);
+  const activeSubcategoryData = activeCategoryData?.subcategories?.find(sub => sub.slug === activeSubcategory);
   const categoryButtonBase = 'w-full text-left px-3 py-2 text-sm rounded-md transition-colors';
 
   return (
     <PageLayout>
       <PageHeader
         title={activeCategoryData ? activeCategoryData.title : 'Каталог'}
-        description={activeCategoryData ? activeCategoryData.description : 'Инженерное оборудование для отопления, водоснабжения и водоподготовки'}
+        description={activeSubcategoryData ? activeSubcategoryData.title : activeCategoryData ? activeCategoryData.description : 'Инженерное оборудование для отопления, водоснабжения и водоподготовки'}
         breadcrumbs={[
           { label: 'Главная', to: '/' },
           ...(activeCategoryData
-            ? [{ label: 'Каталог', to: '/catalog' }, { label: activeCategoryData.title }]
+            ? [
+                { label: 'Каталог', to: '/catalog' },
+                { label: activeCategoryData.title },
+                ...(activeSubcategoryData ? [{ label: activeSubcategoryData.title }] : []),
+              ]
             : [{ label: 'Каталог' }]),
         ]}
       />
@@ -72,6 +100,30 @@ const Catalog = () => {
                       {cat.title}
                     </button>
                   ))}
+
+                  {activeCategoryData?.subcategories?.length ? (
+                    <div className="mt-3 pt-3 border-t border-border space-y-1">
+                      <button
+                        onClick={() => setSubcategory('')}
+                        className={`${categoryButtonBase} ${
+                          !activeSubcategory ? 'bg-secondary text-foreground' : 'hover:bg-secondary text-foreground'
+                        }`}
+                      >
+                        Все в категории
+                      </button>
+                      {activeCategoryData.subcategories.map(sub => (
+                        <button
+                          key={sub.slug}
+                          onClick={() => setSubcategory(sub.slug)}
+                          className={`${categoryButtonBase} pl-6 ${
+                            activeSubcategory === sub.slug ? 'bg-primary text-primary-foreground' : 'hover:bg-secondary text-foreground'
+                          }`}
+                        >
+                          {sub.title}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </aside>
@@ -113,6 +165,33 @@ const Catalog = () => {
                           </button>
                         </SheetClose>
                       ))}
+
+                      {activeCategoryData?.subcategories?.length ? (
+                        <div className="mt-3 pt-3 border-t border-border space-y-1">
+                          <SheetClose asChild>
+                            <button
+                              onClick={() => setSubcategory('')}
+                              className={`${categoryButtonBase} ${
+                                !activeSubcategory ? 'bg-secondary text-foreground' : 'hover:bg-secondary text-foreground'
+                              }`}
+                            >
+                              Все в категории
+                            </button>
+                          </SheetClose>
+                          {activeCategoryData.subcategories.map(sub => (
+                            <SheetClose asChild key={sub.slug}>
+                              <button
+                                onClick={() => setSubcategory(sub.slug)}
+                                className={`${categoryButtonBase} pl-6 ${
+                                  activeSubcategory === sub.slug ? 'bg-primary text-primary-foreground' : 'hover:bg-secondary text-foreground'
+                                }`}
+                              >
+                                {sub.title}
+                              </button>
+                            </SheetClose>
+                          ))}
+                        </div>
+                      ) : null}
                     </div>
                   </SheetContent>
                 </Sheet>
@@ -122,7 +201,15 @@ const Catalog = () => {
                   <Input
                     placeholder="Поиск по каталогу..."
                     value={query}
-                    onChange={e => setQuery(e.target.value)}
+                    onChange={e => {
+                      const nextQuery = e.target.value;
+                      setQuery(nextQuery);
+                      const next: Record<string, string> = {};
+                      if (activeCategory) next.category = activeCategory;
+                      if (activeSubcategory) next.sub = activeSubcategory;
+                      if (nextQuery.trim()) next.q = nextQuery;
+                      setSearchParams(next);
+                    }}
                     className="pl-9 bg-card"
                   />
                   {query && (

@@ -1,6 +1,7 @@
-import { Link, useLocation } from 'react-router-dom';
-import { useState } from 'react';
-import { Send, Menu, X, Phone } from 'lucide-react';
+import { FormEvent, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Send, Menu, X, Phone, Search, ShoppingCart } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 
 const navLinks = [
   { to: '/', label: 'Главная' },
@@ -12,7 +13,16 @@ const navLinks = [
 
 export const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const submitSearch = (e: FormEvent) => {
+    e.preventDefault();
+    const trimmed = searchQuery.trim();
+    navigate(trimmed ? `/catalog?q=${encodeURIComponent(trimmed)}` : '/catalog');
+    setMenuOpen(false);
+  };
 
   return (
     <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-md border-b border-border">
@@ -22,7 +32,7 @@ export const Header = () => {
           Garant Market
         </Link>
 
-        <nav className="hidden md:flex items-center gap-1">
+        <nav className="hidden lg:flex items-center gap-1">
           {navLinks.map(link => (
             <Link
               key={link.to}
@@ -38,7 +48,24 @@ export const Header = () => {
           ))}
         </nav>
 
-        <div className="hidden md:flex items-center gap-3">
+        <form onSubmit={submitSearch} className="hidden md:flex items-center relative w-full max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Поиск по каталогу..."
+            className="pl-9 pr-3 bg-background"
+          />
+        </form>
+
+        <div className="hidden md:flex items-center gap-2">
+          <Link
+            to="/cart"
+            className="inline-flex items-center gap-2 px-3 py-2 border border-border text-sm font-medium rounded-md text-foreground hover:bg-secondary transition-colors"
+          >
+            <ShoppingCart className="w-4 h-4" />
+            Корзина
+          </Link>
           <a href="tel:+70000000000" className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
             <Phone className="w-4 h-4" />
             Позвонить
@@ -65,6 +92,16 @@ export const Header = () => {
 
       {menuOpen && (
         <div className="md:hidden border-t border-border bg-card px-4 pb-4">
+          <form onSubmit={submitSearch} className="relative pt-3">
+            <Search className="absolute left-3 top-[calc(50%+6px)] -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Поиск по каталогу..."
+              className="pl-9 pr-3 bg-background"
+            />
+          </form>
+
           <nav className="flex flex-col gap-1 py-2">
             {navLinks.map(link => (
               <Link
@@ -80,6 +117,17 @@ export const Header = () => {
                 {link.label}
               </Link>
             ))}
+            <Link
+              to="/cart"
+              onClick={() => setMenuOpen(false)}
+              className={`px-3 py-2.5 text-sm font-medium rounded-md ${
+                location.pathname === '/cart'
+                  ? 'text-primary bg-primary/5'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Корзина
+            </Link>
           </nav>
           <div className="flex gap-2 pt-2">
             <a href="tel:+70000000000" className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-secondary text-secondary-foreground text-sm font-medium rounded-md">
