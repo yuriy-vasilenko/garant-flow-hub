@@ -32,12 +32,12 @@ export const Header = () => {
           Garant Market
         </Link>
 
-        <nav className="hidden lg:flex items-center gap-1">
+        <nav className="hidden lg:flex items-center gap-1 flex-nowrap whitespace-nowrap">
           {navLinks.map(link => (
             <Link
               key={link.to}
               to={link.to}
-              className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+              className={`px-3 py-2 text-sm font-medium rounded-md transition-colors shrink-0 ${
                 location.pathname === link.to
                   ? 'text-primary bg-primary/5 whitespace-nowrap'
                   : 'text-muted-foreground hover:text-foreground hover:bg-secondary whitespace-nowrap'
