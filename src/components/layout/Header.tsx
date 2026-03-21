@@ -15,6 +15,7 @@ const navLinks = [
 export const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [logoLoadError, setLogoLoadError] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { totalItems } = useCart();
@@ -29,9 +30,18 @@ export const Header = () => {
   return (
     <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-md border-b border-border">
       <div className="container mx-auto flex items-center justify-between h-16 px-4">
-        <Link to="/" className="flex items-center gap-2.5 font-extrabold text-xl text-foreground tracking-tight">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-primary-foreground text-sm font-black">G</div>
-          Garant Market
+        <Link to="/" className="flex items-center gap-2.5 text-foreground tracking-tight">
+          {!logoLoadError ? (
+            <img
+              src="/garant-market-logo.jpg"
+              alt="Логотип Гарант Маркет"
+              className="w-9 h-9 rounded-md object-cover border border-border shrink-0"
+              onError={() => setLogoLoadError(true)}
+            />
+          ) : (
+            <div className="w-9 h-9 bg-primary rounded-md flex items-center justify-center text-primary-foreground text-sm font-black shrink-0">G</div>
+          )}
+          <span className="font-extrabold text-lg leading-tight">Гарант Маркет</span>
         </Link>
 
         <nav className="hidden lg:flex items-center gap-1 flex-nowrap whitespace-nowrap">
