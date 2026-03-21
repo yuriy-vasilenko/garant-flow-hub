@@ -67,8 +67,19 @@ const emptyProductForm: ProductForm = {
 
 const Admin = () => {
   const navigate = useNavigate();
-  const { categories, products, isLoading, isLocalMode, addCategory, updateCategory, deleteCategory, addProduct, updateProduct, deleteProduct, refreshCatalog } =
-    useCatalog();
+  const {
+    categories,
+    products,
+    isLoading,
+    catalogError,
+    addCategory,
+    updateCategory,
+    deleteCategory,
+    addProduct,
+    updateProduct,
+    deleteProduct,
+    refreshCatalog,
+  } = useCatalog();
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [categoryForm, setCategoryForm] = useState<CategoryForm>(emptyCategoryForm);
@@ -194,7 +205,16 @@ const Admin = () => {
 
         await refreshCatalog();
 
-        const fallbackCat = stockReportCategorySlug ? categories.find(c => c.slug === stockReportCategorySlug) : undefined;
+        let fallbackCat: { slug: string; title: string } | undefined;
+        const fallbackSlug = stockReportCategorySlug.trim();
+        if (fallbackSlug) {
+          const { data: fallbackRow } = await supabase
+            .from('categories')
+            .select('slug,title')
+            .eq('slug', fallbackSlug)
+            .maybeSingle();
+          if (fallbackRow) fallbackCat = { slug: fallbackRow.slug, title: fallbackRow.title };
+        }
 
         let ok = 0;
         for (const r of stockRows) {
@@ -232,9 +252,11 @@ const Admin = () => {
         toast.error('Формат не распознан как отчёт «Остатки». Для своего шаблона нужны колонки с названием и категорией (slug)');
         return;
       }
+      const { data: catRowsForImport } = await supabase.from('categories').select('slug,title');
+      const slugToCat = new Map((catRowsForImport ?? []).map(r => [r.slug, { slug: r.slug, title: r.title }]));
       let ok = 0;
       for (const r of rows) {
-        const cat = categories.find(c => c.slug === r.categorySlug);
+        const cat = slugToCat.get(r.categorySlug);
         if (!cat) continue;
         const payload: Omit<Product, 'id'> = {
           slug: r.slug,
@@ -352,9 +374,9 @@ const Admin = () => {
       <PageHeader
         title="Админ панель"
         description={
-          isLocalMode
-            ? 'Локальный режим: данные в браузере. Вход: логин admin, пароль admin.'
-            : 'Каталог из Supabase. Вход: логин admin, пароль admin.'
+          catalogError
+            ? `Ошибка каталога: ${catalogError}`
+            : 'Общий каталог в Supabase. После импорта и правок данные сами расходятся на все открытые сайты. Вход: admin / admin.'
         }
         breadcrumbs={[
           { label: 'Главная', to: '/' },
@@ -382,39 +404,23 @@ const Admin = () => {
             >
               Выйти из админки
             </button>
-            {isLocalMode ? (
+            <button
+              type="button"
+              onClick={async () => {
+                await supabase.auth.signOut();
+                toast.success('Сессия Supabase сброшена');
+              }}
+              className="px-4 py-2 rounded-xl text-sm border border-border"
+            >
+              Сброс Supabase auth
+            </button>
+            {catalogError && (
               <button
                 type="button"
-                onClick={() => {
-                  localStorage.removeItem('garant_force_local_catalog');
-                  window.location.reload();
-                }}
-                className="px-4 py-2 rounded-xl border border-border text-sm font-medium"
+                onClick={() => void refreshCatalog()}
+                className="px-4 py-2 rounded-xl text-sm font-medium bg-primary text-primary-foreground"
               >
-                Режим Supabase
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  localStorage.setItem('garant_force_local_catalog', 'true');
-                  window.location.reload();
-                }}
-                className="px-4 py-2 rounded-xl border border-primary/30 text-primary text-sm font-medium"
-              >
-                Локальный режим (Pages)
-              </button>
-            )}
-            {!isLocalMode && (
-              <button
-                type="button"
-                onClick={async () => {
-                  await supabase.auth.signOut();
-                  toast.success('Сессия Supabase сброшена');
-                }}
-                className="px-4 py-2 rounded-xl text-sm border border-border"
-              >
-                Сброс Supabase auth
+                Повторить загрузку каталога
               </button>
             )}
           </div>
