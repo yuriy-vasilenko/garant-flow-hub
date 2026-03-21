@@ -2,13 +2,13 @@ import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { PageLayout, PageHeader } from '@/components/layout/PageLayout';
 import { ProductCard } from '@/components/ProductCard';
-import { products, searchProducts } from '@/data/products';
-import { categories } from '@/data/categories';
 import { Menu, Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { useCatalog } from '@/context/CatalogContext';
 
 const Catalog = () => {
+  const { products, categories } = useCatalog();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeCategory = searchParams.get('category') || '';
   const activeSubcategory = searchParams.get('sub') || '';
@@ -20,7 +20,15 @@ const Catalog = () => {
   }, [queryFromUrl]);
 
   const filtered = useMemo(() => {
-    let result = query ? searchProducts(query) : products;
+    const normalizedQuery = query.trim().toLowerCase();
+    let result = normalizedQuery
+      ? products.filter(
+          p =>
+            p.title.toLowerCase().includes(normalizedQuery) ||
+            p.category.toLowerCase().includes(normalizedQuery) ||
+            p.description.toLowerCase().includes(normalizedQuery),
+        )
+      : products;
     if (activeCategory) {
       result = result.filter(p => p.categorySlug === activeCategory);
     }
@@ -28,7 +36,7 @@ const Catalog = () => {
       result = result.filter(p => p.subcategorySlug === activeSubcategory);
     }
     return result;
-  }, [query, activeCategory, activeSubcategory]);
+  }, [query, activeCategory, activeSubcategory, products]);
 
   const setCategory = (slug: string) => {
     const next: Record<string, string> = {};

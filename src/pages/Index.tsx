@@ -2,13 +2,10 @@ import { PageLayout } from '@/components/layout/PageLayout';
 import { ProductCard } from '@/components/ProductCard';
 import { CategoryCard } from '@/components/CategoryCard';
 import { RequestForm } from '@/components/RequestForm';
-import { categories } from '@/data/categories';
-import { getFeaturedProducts } from '@/data/products';
 import { Link } from 'react-router-dom';
 import { Send, Truck, MapPin, Package, ShieldCheck, Headphones, ArrowRight, ClipboardList } from 'lucide-react';
 import heroImage from '@/assets/hero-equipment.png';
-
-const featuredProducts = getFeaturedProducts();
+import { useCatalog } from '@/context/CatalogContext';
 
 const steps = [
   { icon: Package, title: 'Выбираете товар', desc: 'Изучаете каталог, характеристики и наличие' },
@@ -26,8 +23,12 @@ const advantages = [
   { icon: Send, title: 'Удобная подача заявки', desc: 'Оставьте заявку на сайте или напишите нам в Telegram' },
 ];
 
-const Index = () => (
-  <PageLayout>
+const Index = () => {
+  const { categories, products } = useCatalog();
+  const featuredProducts = products.filter(product => product.featured);
+
+  return (
+    <PageLayout>
     {/* Hero */}
     <section className="relative bg-card overflow-hidden">
       <div className="container mx-auto px-4 py-16 lg:py-24 grid lg:grid-cols-2 gap-12 items-center">
@@ -213,7 +214,8 @@ const Index = () => (
         </div>
       </div>
     </section>
-  </PageLayout>
-);
+    </PageLayout>
+  );
+};
 
 export default Index;

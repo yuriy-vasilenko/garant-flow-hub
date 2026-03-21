@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      categories: {
+        Row: {
+          created_at: string
+          description: string
+          icon: string
+          id: string
+          slug: string
+          subcategories: Json
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          slug: string
+          subcategories?: Json
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          slug?: string
+          subcategories?: Json
+          title?: string
+        }
+        Relationships: []
+      }
       contact_requests: {
         Row: {
           comment: string | null
@@ -40,6 +70,62 @@ export type Database = {
           product_title?: string | null
         }
         Relationships: []
+      }
+      products: {
+        Row: {
+          category_slug: string
+          created_at: string
+          description: string
+          featured: boolean
+          id: string
+          image: string
+          images: Json
+          price: number | null
+          slug: string
+          specs: Json
+          status: string
+          subcategory_slug: string | null
+          title: string
+        }
+        Insert: {
+          category_slug: string
+          created_at?: string
+          description?: string
+          featured?: boolean
+          id?: string
+          image: string
+          images?: Json
+          price?: number | null
+          slug: string
+          specs?: Json
+          status: string
+          subcategory_slug?: string | null
+          title: string
+        }
+        Update: {
+          category_slug?: string
+          created_at?: string
+          description?: string
+          featured?: boolean
+          id?: string
+          image?: string
+          images?: Json
+          price?: number | null
+          slug?: string
+          specs?: Json
+          status?: string
+          subcategory_slug?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_category_slug_fkey"
+            columns: ["category_slug"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["slug"]
+          },
+        ]
       }
     }
     Views: {

@@ -7,6 +7,7 @@ import { useCart } from '@/context/CartContext';
 const navLinks = [
   { to: '/', label: 'Главная' },
   { to: '/catalog', label: 'Каталог' },
+  { to: '/admin', label: 'Админ' },
   { to: '/about', label: 'О компании' },
   { to: '/delivery', label: 'Доставка' },
   { to: '/contacts', label: 'Контакты' },

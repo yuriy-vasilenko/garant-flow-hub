@@ -4,14 +4,15 @@ import { PageLayout, PageHeader } from '@/components/layout/PageLayout';
 import { StatusBadge } from '@/components/StatusBadge';
 import { RequestForm } from '@/components/RequestForm';
 import { ProductCard } from '@/components/ProductCard';
-import { getProductBySlug, products } from '@/data/products';
 import { Send, Truck, MapPin, ShieldCheck, ShoppingCart } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
+import { useCatalog } from '@/context/CatalogContext';
 
 const ProductPage = () => {
+  const { products } = useCatalog();
   const { slug } = useParams<{ slug: string }>();
-  const product = getProductBySlug(slug || '');
+  const product = products.find(item => item.slug === (slug || ''));
   const { addToCart } = useCart();
 
   useLayoutEffect(() => {
