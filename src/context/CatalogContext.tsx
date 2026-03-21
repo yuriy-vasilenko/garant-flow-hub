@@ -94,8 +94,6 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
         'Не удалось загрузить каталог из Supabase. Проверьте VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY и политики RLS.';
       if (!silent) {
         setCatalogError(msg);
-        setCategories([]);
-        setProducts([]);
       }
       if (!silent) setIsLoading(false);
       return;

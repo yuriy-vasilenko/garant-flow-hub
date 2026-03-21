@@ -79,6 +79,7 @@ const Admin = () => {
     updateProduct,
     deleteProduct,
     refreshCatalog,
+    broadcastCatalogReload,
   } = useCatalog();
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
@@ -190,20 +191,18 @@ const Admin = () => {
         for (const t of uniqueSectionTitles) {
           const slug = titleToSlug.get(t)!;
           if (!categories.some(c => c.slug === slug)) {
-            const result = await addCategory({
+            const { error } = await supabase.from('categories').insert({
               slug,
               title: t,
               description: 'Импорт из отчёта «Остатки» (МойСклад)',
               icon: 'Waves',
               subcategories: [],
             });
-            if (!result.ok) {
-              toast.error(result.message || `Не удалось создать категорию «${t}»`);
+            if (error && !/duplicate key|already exists|violates unique/i.test(error.message)) {
+              toast.error(error.message || `Не удалось создать категорию «${t}»`);
             }
           }
         }
-
-        await refreshCatalog();
 
         let fallbackCat: { slug: string; title: string } | undefined;
         const fallbackSlug = stockReportCategorySlug.trim();
@@ -238,9 +237,23 @@ const Admin = () => {
             description: r.description,
             featured: r.featured,
           };
-          const res = await addProduct(payload);
-          if (res.ok) ok++;
+          const { error } = await supabase.from('products').insert({
+            slug: payload.slug,
+            title: payload.title,
+            category_slug: payload.categorySlug,
+            subcategory_slug: payload.subcategorySlug || null,
+            price: payload.price ?? null,
+            status: payload.status,
+            image: payload.image,
+            images: payload.images || [],
+            specs: payload.specs || {},
+            description: payload.description,
+            featured: Boolean(payload.featured),
+          });
+          if (!error) ok++;
         }
+        await refreshCatalog();
+        await broadcastCatalogReload();
         toast.success(
           `Импорт «Остатки»: категории по секциям файла, добавлено ${ok} из ${stockRows.length} товаров`,
         );
@@ -271,9 +284,23 @@ const Admin = () => {
           description: r.description,
           featured: r.featured,
         };
-        const res = await addProduct(payload);
-        if (res.ok) ok++;
+        const { error } = await supabase.from('products').insert({
+          slug: payload.slug,
+          title: payload.title,
+          category_slug: payload.categorySlug,
+          subcategory_slug: payload.subcategorySlug || null,
+          price: payload.price ?? null,
+          status: payload.status,
+          image: payload.image,
+          images: payload.images || [],
+          specs: payload.specs || {},
+          description: payload.description,
+          featured: Boolean(payload.featured),
+        });
+        if (!error) ok++;
       }
+      await refreshCatalog();
+      await broadcastCatalogReload();
       toast.success(`Импорт: добавлено ${ok} из ${rows.length} строк (пропущены строки без совпадения категории)`);
     } catch (err) {
       console.error(err);
