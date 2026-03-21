@@ -6,7 +6,6 @@ import type { Availability, Category, Product, Subcategory } from '@/types/produ
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 import { isSiteAdmin, logoutSiteAdmin } from '@/lib/adminAuth';
 import { parseExcelProducts, parseMoySkladStockReportIfMatch } from '@/lib/excelImport';
 import { Upload, FileSpreadsheet, ImagePlus, Trash2, Plus } from 'lucide-react';
@@ -71,15 +70,12 @@ const Admin = () => {
     categories,
     products,
     isLoading,
-    catalogError,
     addCategory,
     updateCategory,
     deleteCategory,
     addProduct,
     updateProduct,
     deleteProduct,
-    refreshCatalog,
-    broadcastCatalogReload,
   } = useCatalog();
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
@@ -191,29 +187,20 @@ const Admin = () => {
         for (const t of uniqueSectionTitles) {
           const slug = titleToSlug.get(t)!;
           if (!categories.some(c => c.slug === slug)) {
-            const { error } = await supabase.from('categories').insert({
+            const result = await addCategory({
               slug,
               title: t,
               description: 'Импорт из отчёта «Остатки» (МойСклад)',
               icon: 'Waves',
               subcategories: [],
             });
-            if (error && !/duplicate key|already exists|violates unique/i.test(error.message)) {
-              toast.error(error.message || `Не удалось создать категорию «${t}»`);
+            if (!result.ok) {
+              toast.error(result.message || `Не удалось создать категорию «${t}»`);
             }
           }
         }
 
-        let fallbackCat: { slug: string; title: string } | undefined;
-        const fallbackSlug = stockReportCategorySlug.trim();
-        if (fallbackSlug) {
-          const { data: fallbackRow } = await supabase
-            .from('categories')
-            .select('slug,title')
-            .eq('slug', fallbackSlug)
-            .maybeSingle();
-          if (fallbackRow) fallbackCat = { slug: fallbackRow.slug, title: fallbackRow.title };
-        }
+        const fallbackCat = stockReportCategorySlug ? categories.find(c => c.slug === stockReportCategorySlug) : undefined;
 
         let ok = 0;
         for (const r of stockRows) {
@@ -237,23 +224,9 @@ const Admin = () => {
             description: r.description,
             featured: r.featured,
           };
-          const { error } = await supabase.from('products').insert({
-            slug: payload.slug,
-            title: payload.title,
-            category_slug: payload.categorySlug,
-            subcategory_slug: payload.subcategorySlug || null,
-            price: payload.price ?? null,
-            status: payload.status,
-            image: payload.image,
-            images: payload.images || [],
-            specs: payload.specs || {},
-            description: payload.description,
-            featured: Boolean(payload.featured),
-          });
-          if (!error) ok++;
+          const res = await addProduct(payload);
+          if (res.ok) ok++;
         }
-        await refreshCatalog();
-        await broadcastCatalogReload();
         toast.success(
           `Импорт «Остатки»: категории по секциям файла, добавлено ${ok} из ${stockRows.length} товаров`,
         );
@@ -265,11 +238,9 @@ const Admin = () => {
         toast.error('Формат не распознан как отчёт «Остатки». Для своего шаблона нужны колонки с названием и категорией (slug)');
         return;
       }
-      const { data: catRowsForImport } = await supabase.from('categories').select('slug,title');
-      const slugToCat = new Map((catRowsForImport ?? []).map(r => [r.slug, { slug: r.slug, title: r.title }]));
       let ok = 0;
       for (const r of rows) {
-        const cat = slugToCat.get(r.categorySlug);
+        const cat = categories.find(c => c.slug === r.categorySlug);
         if (!cat) continue;
         const payload: Omit<Product, 'id'> = {
           slug: r.slug,
@@ -284,23 +255,9 @@ const Admin = () => {
           description: r.description,
           featured: r.featured,
         };
-        const { error } = await supabase.from('products').insert({
-          slug: payload.slug,
-          title: payload.title,
-          category_slug: payload.categorySlug,
-          subcategory_slug: payload.subcategorySlug || null,
-          price: payload.price ?? null,
-          status: payload.status,
-          image: payload.image,
-          images: payload.images || [],
-          specs: payload.specs || {},
-          description: payload.description,
-          featured: Boolean(payload.featured),
-        });
-        if (!error) ok++;
+        const res = await addProduct(payload);
+        if (res.ok) ok++;
       }
-      await refreshCatalog();
-      await broadcastCatalogReload();
       toast.success(`Импорт: добавлено ${ok} из ${rows.length} строк (пропущены строки без совпадения категории)`);
     } catch (err) {
       console.error(err);
@@ -400,11 +357,7 @@ const Admin = () => {
     <PageLayout>
       <PageHeader
         title="Админ панель"
-        description={
-          catalogError
-            ? `Ошибка каталога: ${catalogError}`
-            : 'Общий каталог в Supabase. После импорта и правок данные сами расходятся на все открытые сайты. Вход: admin / admin.'
-        }
+        description="Локальный режим: данные хранятся в этом браузере. Вход: логин admin, пароль admin."
         breadcrumbs={[
           { label: 'Главная', to: '/' },
           { label: 'Админ панель' },
@@ -431,25 +384,6 @@ const Admin = () => {
             >
               Выйти из админки
             </button>
-            <button
-              type="button"
-              onClick={async () => {
-                await supabase.auth.signOut();
-                toast.success('Сессия Supabase сброшена');
-              }}
-              className="px-4 py-2 rounded-xl text-sm border border-border"
-            >
-              Сброс Supabase auth
-            </button>
-            {catalogError && (
-              <button
-                type="button"
-                onClick={() => void refreshCatalog()}
-                className="px-4 py-2 rounded-xl text-sm font-medium bg-primary text-primary-foreground"
-              >
-                Повторить загрузку каталога
-              </button>
-            )}
           </div>
 
           <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-5 space-y-4">

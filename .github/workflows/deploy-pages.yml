@@ -28,25 +28,8 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund --legacy-peer-deps
 
-      - name: Validate Supabase secrets
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-        run: |
-          if [ -z "$VITE_SUPABASE_URL" ]; then
-            echo "Missing secret: VITE_SUPABASE_URL"
-            exit 1
-          fi
-          if [ -z "$VITE_SUPABASE_PUBLISHABLE_KEY" ]; then
-            echo "Missing secret: VITE_SUPABASE_PUBLISHABLE_KEY"
-            exit 1
-          fi
-
       - name: Build
         run: npm run build
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
 
       - name: SPA fallback for GitHub Pages
         run: cp dist/index.html dist/404.html
