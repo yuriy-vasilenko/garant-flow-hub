@@ -67,14 +67,14 @@ const emptyProductForm: ProductForm = {
 
 const Admin = () => {
   const navigate = useNavigate();
-  const { categories, products, isLoading, isLocalMode, addCategory, updateCategory, deleteCategory, addProduct, updateProduct, deleteProduct } =
+  const { categories, products, isLoading, isLocalMode, addCategory, updateCategory, deleteCategory, addProduct, updateProduct, deleteProduct, refreshCatalog } =
     useCatalog();
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [categoryForm, setCategoryForm] = useState<CategoryForm>(emptyCategoryForm);
   const [productForm, setProductForm] = useState<ProductForm>(emptyProductForm);
   const [importBusy, setImportBusy] = useState(false);
-  /** Категория на сайте для отчёта «Остатки» (МойСклад): в файле нет slug категории витрины */
+  /** Для товаров «Прочее» (нет строки-группы выше в файле) — положить в выбранную категорию вместо новой «Прочее» */
   const [stockReportCategorySlug, setStockReportCategorySlug] = useState('');
 
   const sortedCategories = useMemo(() => [...categories].sort((a, b) => a.title.localeCompare(b.title)), [categories]);
@@ -155,26 +155,62 @@ const Admin = () => {
       const stockRows = parseMoySkladStockReportIfMatch(buf);
 
       if (stockRows !== null) {
-        if (!stockReportCategorySlug) {
-          toast.error('Для отчёта «Остатки» выберите категорию на сайте (поле ниже), затем снова выберите файл');
-          return;
-        }
-        const cat = categories.find(c => c.slug === stockReportCategorySlug);
-        if (!cat) {
-          toast.error('Категория не найдена');
-          return;
-        }
         if (stockRows.length === 0) {
           toast.error('В отчёте не найдено строк с наименованием');
           return;
         }
+
+        const usedCatSlugs = new Set(categories.map(c => c.slug));
+        const titleToSlug = new Map<string, string>();
+        const uniqueSectionTitles = [...new Set(stockRows.map(r => r.sectionCategoryTitle))];
+
+        for (const t of uniqueSectionTitles) {
+          let base = slugify(t);
+          if (!base) base = 'kategoriya';
+          let s = base;
+          let n = 1;
+          while (usedCatSlugs.has(s)) {
+            s = `${base}-${n++}`;
+          }
+          usedCatSlugs.add(s);
+          titleToSlug.set(t, s);
+        }
+
+        for (const t of uniqueSectionTitles) {
+          const slug = titleToSlug.get(t)!;
+          if (!categories.some(c => c.slug === slug)) {
+            const result = await addCategory({
+              slug,
+              title: t,
+              description: 'Импорт из отчёта «Остатки» (МойСклад)',
+              icon: 'Waves',
+              subcategories: [],
+            });
+            if (!result.ok) {
+              toast.error(result.message || `Не удалось создать категорию «${t}»`);
+            }
+          }
+        }
+
+        await refreshCatalog();
+
+        const fallbackCat = stockReportCategorySlug ? categories.find(c => c.slug === stockReportCategorySlug) : undefined;
+
         let ok = 0;
         for (const r of stockRows) {
+          let catSlug = titleToSlug.get(r.sectionCategoryTitle)!;
+          let catTitle = r.sectionCategoryTitle;
+
+          if (r.sectionCategoryTitle === 'Прочее' && fallbackCat) {
+            catSlug = fallbackCat.slug;
+            catTitle = fallbackCat.title;
+          }
+
           const payload: Omit<Product, 'id'> = {
             slug: r.slug,
             title: r.title,
-            category: cat.title,
-            categorySlug: cat.slug,
+            category: catTitle,
+            categorySlug: catSlug,
             price: r.price,
             status: r.status,
             image: r.image || defaultImage,
@@ -185,7 +221,9 @@ const Admin = () => {
           const res = await addProduct(payload);
           if (res.ok) ok++;
         }
-        toast.success(`Импорт из отчёта «Остатки»: добавлено ${ok} из ${stockRows.length} товаров`);
+        toast.success(
+          `Импорт «Остатки»: категории по секциям файла, добавлено ${ok} из ${stockRows.length} товаров`,
+        );
         return;
       }
 
@@ -387,25 +425,25 @@ const Admin = () => {
               <div>
                 <h3 className="font-semibold text-foreground">Импорт из Excel / отчёт МойСклад</h3>
                 <p className="text-sm text-muted-foreground">
-                  <strong>Отчёт «Остатки» (.xls)</strong> — автоматически читаются колонки «Наименование», «Цена продажи», «Доступно» (при нуле — статус «Уточнить»). Код и артикул попадают в описание. Сначала выберите{' '}
-                  <strong>категорию на сайте</strong> — в отчёте нет привязки к витрине.
+                  <strong>Отчёт «Остатки» (.xls)</strong> — строки-заголовки секций (например «Американки латунные» в колонке «Код», пустое «Наименование») становятся{' '}
+                  <strong>категориями на сайте</strong> (создаются автоматически при импорте). Товары ниже попадают в эту категорию. Колонки «Наименование», «Цена продажи», «Доступно» — как раньше.
                 </p>
                 <p className="text-sm text-muted-foreground mt-2">
                   <strong>Свой шаблон</strong> — колонки: Название, Категория slug, опционально Slug, Подкатегория, Цена, Статус, Описание, Фото, Популярный.
                 </p>
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 max-w-md">
-              <span className="text-sm font-medium text-foreground shrink-0">Категория для отчёта «Остатки»:</span>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 max-w-xl">
+              <span className="text-sm font-medium text-foreground shrink-0">Без группы в файле →</span>
               <select
                 value={stockReportCategorySlug}
                 onChange={e => setStockReportCategorySlug(e.target.value)}
                 className="h-10 flex-1 rounded-xl border border-input bg-background px-3 text-sm"
               >
-                <option value="">— выберите перед импортом .xls —</option>
+                <option value="">Создать категорию «Прочее»</option>
                 {sortedCategories.map(c => (
                   <option key={c.id} value={c.slug}>
-                    {c.title} ({c.slug})
+                    В категорию: {c.title}
                   </option>
                 ))}
               </select>

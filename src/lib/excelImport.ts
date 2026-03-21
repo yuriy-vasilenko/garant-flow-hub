@@ -130,7 +130,7 @@ export function parseExcelProducts(buffer: ArrayBuffer): ExcelProductRow[] {
   return out;
 }
 
-/** Строка из отчёта «Остатки» (МойСклад и похожие выгрузки) без привязки к категории сайта */
+/** Строка из отчёта «Остатки» (МойСклад и похожие выгрузки) */
 export type StockReportProductRow = {
   title: string;
   slug: string;
@@ -139,11 +139,14 @@ export type StockReportProductRow = {
   description: string;
   image: string;
   featured: boolean;
+  /** Заголовок секции из файла (строка с названием группы в колонке «Код», пустое «Наименование») */
+  sectionCategoryTitle: string;
 };
 
 /**
  * Распознаёт отчёт вида «Остатки»: строка заголовков с колонками «Наименование», «Цена продажи».
- * Пропускает строки-группы (без наименования). Код/артикул попадают в описание.
+ * Строки-заголовки секций: в колонке «Код» текст (например «Американки латунные»), «Наименование» пусто — задают группу для следующих товаров.
+ * Код/артикул в строке товара попадают в описание.
  * Если формат не совпал — возвращает null (тогда используйте обычный parseExcelProducts).
  */
 export function parseMoySkladStockReportIfMatch(buffer: ArrayBuffer): StockReportProductRow[] | null {
@@ -183,13 +186,23 @@ export function parseMoySkladStockReportIfMatch(buffer: ArrayBuffer): StockRepor
 
   const out: StockReportProductRow[] = [];
   const usedSlugs = new Set<string>();
+  /** Текущая секция из строки-заголовка (название будущей категории на сайте) */
+  let sectionCategoryTitle = '';
 
   for (let i = headerRowIndex + 1; i < data.length; i++) {
     const row = data[i];
     if (!Array.isArray(row)) continue;
 
     const title = String(row[idxName] ?? '').trim();
-    if (!title) continue;
+    const codeCell = idxCode !== undefined ? String(row[idxCode] ?? '').trim() : '';
+
+    // Строка-заголовок группы: в отчёте МойСклад название секции в первой колонке (Код), наименование пустое
+    if (!title) {
+      if (codeCell) {
+        sectionCategoryTitle = codeCell;
+      }
+      continue;
+    }
 
     const rawPrice = row[idxPrice];
     let price: number | undefined;
@@ -231,6 +244,7 @@ export function parseMoySkladStockReportIfMatch(buffer: ArrayBuffer): StockRepor
       description,
       image: 'https://placehold.co/600x600?text=Product',
       featured: false,
+      sectionCategoryTitle: sectionCategoryTitle || 'Прочее',
     });
   }
 
