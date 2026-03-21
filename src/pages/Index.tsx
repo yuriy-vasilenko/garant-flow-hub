@@ -37,7 +37,7 @@ const Index = () => (
             <span className="text-primary">отопления</span> и водоснабжения
           </h1>
           <p className="mt-6 text-lg text-muted-foreground max-w-[50ch] leading-relaxed">
-            Garant Market — профессиональный подбор оборудования в Донецке.
+            Гарант Маркет — профессиональный подбор оборудования в Донецке.
             От бытовых насосов до систем водоподготовки.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
@@ -75,7 +75,7 @@ const Index = () => (
         </div>
         <div className="relative aspect-square bg-background rounded-2xl shadow-hero border border-border p-6 overflow-hidden">
           <div className="absolute inset-0 dot-pattern opacity-20" />
-          <img src={heroImage} alt="Инженерное оборудование Garant Market" className="relative z-10 object-contain w-full h-full" />
+          <img src={heroImage} alt="Инженерное оборудование Гарант Маркет" className="relative z-10 object-contain w-full h-full" />
         </div>
       </div>
     </section>
@@ -83,7 +83,7 @@ const Index = () => (
     {/* Advantages */}
     <section className="py-16 bg-card">
       <div className="container mx-auto px-4">
-        <h2 className="text-2xl font-bold text-foreground mb-2">Почему Garant Market</h2>
+        <h2 className="text-2xl font-bold text-foreground mb-2">Почему Гарант Маркет</h2>
         <p className="text-muted-foreground mb-8">Работаем для тех, кто ценит надёжность и удобство</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {advantages.map((adv, i) => (
@@ -189,7 +189,7 @@ const Index = () => (
         <div className="grid lg:grid-cols-2 gap-12 items-start">
           <div>
             <h2 className="text-2xl font-bold text-foreground mb-2">Работаем для вас</h2>
-            <p className="text-muted-foreground mb-6">Garant Market — это не абстрактный интернет-магазин, а реальный бизнес с магазином и складом в Донецке.</p>
+            <p className="text-muted-foreground mb-6">Гарант Маркет — это не абстрактный интернет-магазин, а реальный бизнес с магазином и складом в Донецке.</p>
             <ul className="space-y-3">
               {[
                 'Прозрачная работа с заказом — вы всегда знаете статус',

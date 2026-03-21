@@ -10,7 +10,7 @@ const Privacy = () => (
       <div className="container mx-auto px-4 max-w-3xl">
         <div className="bg-card rounded-xl p-6 border border-border space-y-4 text-sm text-muted-foreground leading-relaxed">
           <h2 className="text-lg font-bold text-foreground">1. Общие положения</h2>
-          <p>Настоящая Политика конфиденциальности определяет порядок обработки и защиты персональных данных пользователей сайта Garant Market (далее — Сайт).</p>
+          <p>Настоящая Политика конфиденциальности определяет порядок обработки и защиты персональных данных пользователей сайта Гарант Маркет (далее — Сайт).</p>
 
           <h2 className="text-lg font-bold text-foreground">2. Какие данные мы собираем</h2>
           <p>При отправке заявки через формы на Сайте мы можем собирать следующие данные: имя, номер телефона, содержание обращения.</p>

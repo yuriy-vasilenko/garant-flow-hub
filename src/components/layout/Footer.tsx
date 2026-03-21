@@ -6,11 +6,15 @@ export const Footer = () => (
     <div className="container mx-auto px-4 py-12">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
         <div>
-          <div className="flex items-center gap-2.5 font-extrabold text-xl mb-4">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-sm font-black">G</div>
-            Garant Market
+          <div className="flex items-center gap-2.5 font-extrabold text-xl mb-4 tracking-tight">
+            <img
+              src={`${import.meta.env.BASE_URL}photo_5422750417609161911_y.jpg`}
+              alt="Логотип Гарант Маркет"
+              className="w-8 h-8 rounded-md object-cover border border-primary-foreground/20 shadow-sm"
+            />
+            Гарант Маркет
           </div>
-          <p className="text-sm text-primary-foreground/60 leading-relaxed">
+          <p className="text-sm text-primary-foreground/70 leading-relaxed">
             Товары для отопления, водоснабжения и водоподготовки. Профессиональный подбор оборудования в Донецке.
           </p>
           <a
@@ -65,8 +69,8 @@ export const Footer = () => (
         </div>
       </div>
 
-      <div className="border-t border-primary-foreground/10 mt-8 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-primary-foreground/40">
-        <p>© {new Date().getFullYear()} Garant Market. Все права защищены.</p>
+      <div className="border-t border-primary-foreground/10 mt-8 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-primary-foreground/50">
+        <p>© {new Date().getFullYear()} Гарант Маркет. Все права защищены.</p>
         <Link to="/privacy" className="hover:text-primary-foreground/60 transition-colors">Политика конфиденциальности</Link>
       </div>
     </div>

@@ -29,14 +29,14 @@ export const Header = () => {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-md border-b border-border">
+    <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-md border-b border-border shadow-sm">
       <div className="container mx-auto flex items-center justify-between h-16 px-4">
-        <Link to="/" className="flex items-center gap-2.5 text-foreground tracking-tight">
+        <Link to="/" className="group flex items-center gap-3 text-foreground tracking-tight">
           {!logoLoadError ? (
             <img
               src={logoSrc}
               alt="Логотип Гарант Маркет"
-              className="w-9 h-9 rounded-md object-cover border border-border shrink-0"
+              className="w-9 h-9 rounded-lg object-cover border border-border/80 shadow-sm shrink-0 transition-transform duration-200 group-hover:scale-[1.03]"
               onError={() => setLogoLoadError(true)}
             />
           ) : (
@@ -67,14 +67,14 @@ export const Header = () => {
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder="Поиск по каталогу..."
-            className="pl-9 pr-3 bg-background"
+            className="pl-9 pr-3 bg-background/70 border-border/80 focus-visible:bg-background"
           />
         </form>
 
         <div className="hidden md:flex items-center gap-2">
           <Link
             to="/cart"
-            className="relative inline-flex items-center gap-2 px-3 py-2 border border-border text-sm font-medium rounded-md text-foreground hover:bg-secondary transition-colors"
+            className="relative inline-flex items-center gap-2 px-3 py-2 border border-border/80 text-sm font-medium rounded-md text-foreground hover:bg-secondary transition-colors"
           >
             <ShoppingCart className="w-4 h-4" />
             Корзина
