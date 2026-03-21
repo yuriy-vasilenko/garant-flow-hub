@@ -16,6 +16,7 @@ export const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [logoLoadError, setLogoLoadError] = useState(false);
+  const logoSrc = `${import.meta.env.BASE_URL}photo_5422750417609161911_y.jpg`;
   const location = useLocation();
   const navigate = useNavigate();
   const { totalItems } = useCart();
@@ -33,7 +34,7 @@ export const Header = () => {
         <Link to="/" className="flex items-center gap-2.5 text-foreground tracking-tight">
           {!logoLoadError ? (
             <img
-              src="/garant-market-logo.jpg"
+              src={logoSrc}
               alt="Логотип Гарант Маркет"
               className="w-9 h-9 rounded-md object-cover border border-border shrink-0"
               onError={() => setLogoLoadError(true)}
