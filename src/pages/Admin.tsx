@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { isSiteAdmin, logoutSiteAdmin } from '@/lib/adminAuth';
-import { parseExcelProducts } from '@/lib/excelImport';
+import { parseExcelProducts, parseMoySkladStockReportIfMatch } from '@/lib/excelImport';
 import { Upload, FileSpreadsheet, ImagePlus, Trash2, Plus } from 'lucide-react';
 
 const defaultImage = 'https://placehold.co/600x600?text=Product';
@@ -74,6 +74,8 @@ const Admin = () => {
   const [categoryForm, setCategoryForm] = useState<CategoryForm>(emptyCategoryForm);
   const [productForm, setProductForm] = useState<ProductForm>(emptyProductForm);
   const [importBusy, setImportBusy] = useState(false);
+  /** Категория на сайте для отчёта «Остатки» (МойСклад): в файле нет slug категории витрины */
+  const [stockReportCategorySlug, setStockReportCategorySlug] = useState('');
 
   const sortedCategories = useMemo(() => [...categories].sort((a, b) => a.title.localeCompare(b.title)), [categories]);
   const sortedProducts = useMemo(() => [...products].sort((a, b) => a.title.localeCompare(b.title)), [products]);
@@ -150,9 +152,46 @@ const Admin = () => {
     setImportBusy(true);
     try {
       const buf = await file.arrayBuffer();
+      const stockRows = parseMoySkladStockReportIfMatch(buf);
+
+      if (stockRows !== null) {
+        if (!stockReportCategorySlug) {
+          toast.error('Для отчёта «Остатки» выберите категорию на сайте (поле ниже), затем снова выберите файл');
+          return;
+        }
+        const cat = categories.find(c => c.slug === stockReportCategorySlug);
+        if (!cat) {
+          toast.error('Категория не найдена');
+          return;
+        }
+        if (stockRows.length === 0) {
+          toast.error('В отчёте не найдено строк с наименованием');
+          return;
+        }
+        let ok = 0;
+        for (const r of stockRows) {
+          const payload: Omit<Product, 'id'> = {
+            slug: r.slug,
+            title: r.title,
+            category: cat.title,
+            categorySlug: cat.slug,
+            price: r.price,
+            status: r.status,
+            image: r.image || defaultImage,
+            specs: {},
+            description: r.description,
+            featured: r.featured,
+          };
+          const res = await addProduct(payload);
+          if (res.ok) ok++;
+        }
+        toast.success(`Импорт из отчёта «Остатки»: добавлено ${ok} из ${stockRows.length} товаров`);
+        return;
+      }
+
       const rows = parseExcelProducts(buf);
       if (rows.length === 0) {
-        toast.error('В файле нет строк с названием и категорией');
+        toast.error('Формат не распознан как отчёт «Остатки». Для своего шаблона нужны колонки с названием и категорией (slug)');
         return;
       }
       let ok = 0;
@@ -342,15 +381,34 @@ const Admin = () => {
             )}
           </div>
 
-          <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-5 space-y-3">
+          <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-5 space-y-4">
             <div className="flex flex-wrap items-center gap-3">
               <FileSpreadsheet className="w-5 h-5 text-primary" />
               <div>
-                <h3 className="font-semibold text-foreground">Импорт из Excel</h3>
+                <h3 className="font-semibold text-foreground">Импорт из Excel / отчёт МойСклад</h3>
                 <p className="text-sm text-muted-foreground">
-                  Колонки: Название, Категория slug (как в каталоге), опционально — Slug, Подкатегория slug, Цена, Статус, Описание, Фото (URL), Популярный (да/нет).
+                  <strong>Отчёт «Остатки» (.xls)</strong> — автоматически читаются колонки «Наименование», «Цена продажи», «Доступно» (при нуле — статус «Уточнить»). Код и артикул попадают в описание. Сначала выберите{' '}
+                  <strong>категорию на сайте</strong> — в отчёте нет привязки к витрине.
+                </p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  <strong>Свой шаблон</strong> — колонки: Название, Категория slug, опционально Slug, Подкатегория, Цена, Статус, Описание, Фото, Популярный.
                 </p>
               </div>
+            </div>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 max-w-md">
+              <span className="text-sm font-medium text-foreground shrink-0">Категория для отчёта «Остатки»:</span>
+              <select
+                value={stockReportCategorySlug}
+                onChange={e => setStockReportCategorySlug(e.target.value)}
+                className="h-10 flex-1 rounded-xl border border-input bg-background px-3 text-sm"
+              >
+                <option value="">— выберите перед импортом .xls —</option>
+                {sortedCategories.map(c => (
+                  <option key={c.id} value={c.slug}>
+                    {c.title} ({c.slug})
+                  </option>
+                ))}
+              </select>
             </div>
             <label className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium cursor-pointer hover:bg-primary/90 disabled:opacity-50">
               <input type="file" accept=".xlsx,.xls" className="hidden" disabled={importBusy} onChange={onExcelImport} />

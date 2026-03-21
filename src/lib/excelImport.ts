@@ -129,3 +129,110 @@ export function parseExcelProducts(buffer: ArrayBuffer): ExcelProductRow[] {
 
   return out;
 }
+
+/** Строка из отчёта «Остатки» (МойСклад и похожие выгрузки) без привязки к категории сайта */
+export type StockReportProductRow = {
+  title: string;
+  slug: string;
+  price?: number;
+  status: Availability;
+  description: string;
+  image: string;
+  featured: boolean;
+};
+
+/**
+ * Распознаёт отчёт вида «Остатки»: строка заголовков с колонками «Наименование», «Цена продажи».
+ * Пропускает строки-группы (без наименования). Код/артикул попадают в описание.
+ * Если формат не совпал — возвращает null (тогда используйте обычный parseExcelProducts).
+ */
+export function parseMoySkladStockReportIfMatch(buffer: ArrayBuffer): StockReportProductRow[] | null {
+  const wb = XLSX.read(buffer, { type: 'array' });
+  const sheetName = wb.SheetNames[0];
+  if (!sheetName) return null;
+  const sheet = wb.Sheets[sheetName];
+  const data = XLSX.utils.sheet_to_json<(string | number)[]>(sheet, { header: 1, defval: '' });
+
+  let headerRowIndex = -1;
+  const colMap: Record<string, number> = {};
+
+  for (let i = 0; i < data.length; i++) {
+    const row = data[i];
+    if (!Array.isArray(row)) continue;
+    const tempMap: Record<string, number> = {};
+    row.forEach((cell, j) => {
+      const key = normKey(String(cell));
+      if (key) tempMap[key] = j;
+    });
+    if (tempMap['наименование'] !== undefined && (tempMap['цена_продажи'] !== undefined || tempMap['цена'] !== undefined)) {
+      headerRowIndex = i;
+      Object.assign(colMap, tempMap);
+      break;
+    }
+  }
+
+  if (headerRowIndex < 0) return null;
+
+  const idxName = colMap['наименование'];
+  const idxPrice = colMap['цена_продажи'] ?? colMap['цена'];
+  const idxCode = colMap['код'];
+  const idxArt = colMap['артикул'];
+  const idxAvail = colMap['доступно'];
+
+  if (idxName === undefined || idxPrice === undefined) return null;
+
+  const out: StockReportProductRow[] = [];
+  const usedSlugs = new Set<string>();
+
+  for (let i = headerRowIndex + 1; i < data.length; i++) {
+    const row = data[i];
+    if (!Array.isArray(row)) continue;
+
+    const title = String(row[idxName] ?? '').trim();
+    if (!title) continue;
+
+    const rawPrice = row[idxPrice];
+    let price: number | undefined;
+    if (typeof rawPrice === 'number' && Number.isFinite(rawPrice)) {
+      price = rawPrice;
+    } else {
+      price = parsePrice(String(rawPrice));
+    }
+
+    let status: Availability = 'available';
+    if (idxAvail !== undefined) {
+      const rawAvail = row[idxAvail];
+      const a = typeof rawAvail === 'number' ? rawAvail : Number(String(rawAvail).replace(/\s/g, '').replace(',', '.'));
+      if (Number.isFinite(a) && a <= 0) status = 'check';
+    }
+
+    let slug = slugify(title);
+    if (!slug) continue;
+    let unique = slug;
+    let n = 1;
+    while (usedSlugs.has(unique)) {
+      unique = `${slug}-${n++}`;
+    }
+    usedSlugs.add(unique);
+    slug = unique;
+
+    const code = idxCode !== undefined ? String(row[idxCode] ?? '').trim() : '';
+    const art = idxArt !== undefined ? String(row[idxArt] ?? '').trim() : '';
+    const descParts: string[] = [];
+    if (code) descParts.push(`Код: ${code}`);
+    if (art) descParts.push(`Артикул: ${art}`);
+    const description = descParts.join('. ');
+
+    out.push({
+      title,
+      slug,
+      price,
+      status,
+      description,
+      image: 'https://placehold.co/600x600?text=Product',
+      featured: false,
+    });
+  }
+
+  return out.length > 0 ? out : [];
+}
