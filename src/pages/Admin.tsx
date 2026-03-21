@@ -1,15 +1,18 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { ChangeEvent, FormEvent, useMemo, useState } from 'react';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { PageLayout, PageHeader } from '@/components/layout/PageLayout';
 import { useCatalog } from '@/context/CatalogContext';
-import type { Availability, Category, Product } from '@/types/product';
+import type { Availability, Category, Product, Subcategory } from '@/types/product';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import type { Session } from '@supabase/supabase-js';
+import { isSiteAdmin, logoutSiteAdmin } from '@/lib/adminAuth';
+import { parseExcelProducts } from '@/lib/excelImport';
+import { Upload, FileSpreadsheet, ImagePlus, Trash2, Plus } from 'lucide-react';
 
 const defaultImage = 'https://placehold.co/600x600?text=Product';
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 
 const slugify = (value: string) =>
   value
@@ -63,29 +66,24 @@ const emptyProductForm: ProductForm = {
 };
 
 const Admin = () => {
-  const { categories, products, isLoading, isLocalMode, addCategory, updateCategory, deleteCategory, addProduct, updateProduct, deleteProduct } = useCatalog();
+  const navigate = useNavigate();
+  const { categories, products, isLoading, isLocalMode, addCategory, updateCategory, deleteCategory, addProduct, updateProduct, deleteProduct } =
+    useCatalog();
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [categoryForm, setCategoryForm] = useState<CategoryForm>(emptyCategoryForm);
   const [productForm, setProductForm] = useState<ProductForm>(emptyProductForm);
-  const [session, setSession] = useState<Session | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
-  const [credentials, setCredentials] = useState({ email: '', password: '' });
+  const [importBusy, setImportBusy] = useState(false);
 
   const sortedCategories = useMemo(() => [...categories].sort((a, b) => a.title.localeCompare(b.title)), [categories]);
   const sortedProducts = useMemo(() => [...products].sort((a, b) => a.title.localeCompare(b.title)), [products]);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setAuthLoading(false);
-    });
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession);
-      setAuthLoading(false);
-    });
-    return () => sub.subscription.unsubscribe();
-  }, []);
+  if (!isSiteAdmin()) {
+    return <Navigate to="/cabinet" replace />;
+  }
+
+  const productCategory = categories.find(c => c.slug === productForm.categorySlug);
+  const subcategoryOptions: Subcategory[] = productCategory?.subcategories || [];
 
   const resetCategoryForm = () => {
     setEditingCategoryId(null);
@@ -97,6 +95,95 @@ const Admin = () => {
     setProductForm(emptyProductForm);
   };
 
+  const addSubcategoryRow = () => {
+    setCategoryForm(prev => ({
+      ...prev,
+      subcategories: [...(prev.subcategories || []), { title: '', slug: '' }],
+    }));
+  };
+
+  const updateSubRow = (index: number, patch: Partial<Subcategory>) => {
+    setCategoryForm(prev => {
+      const list = [...(prev.subcategories || [])];
+      const current = list[index] || { title: '', slug: '' };
+      const next = { ...current, ...patch };
+      if (patch.title !== undefined && !patch.slug) {
+        next.slug = slugify(patch.title);
+      }
+      list[index] = next;
+      return { ...prev, subcategories: list };
+    });
+  };
+
+  const removeSubRow = (index: number) => {
+    setCategoryForm(prev => ({
+      ...prev,
+      subcategories: (prev.subcategories || []).filter((_, i) => i !== index),
+    }));
+  };
+
+  const onImageFile = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Выберите файл изображения');
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      toast.error('Файл слишком большой (макс. 2 МБ для сохранения в каталоге)');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result || '');
+      setProductForm(prev => ({ ...prev, image: result || prev.image }));
+      toast.success('Фото загружено');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const onExcelImport = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setImportBusy(true);
+    try {
+      const buf = await file.arrayBuffer();
+      const rows = parseExcelProducts(buf);
+      if (rows.length === 0) {
+        toast.error('В файле нет строк с названием и категорией');
+        return;
+      }
+      let ok = 0;
+      for (const r of rows) {
+        const cat = categories.find(c => c.slug === r.categorySlug);
+        if (!cat) continue;
+        const payload: Omit<Product, 'id'> = {
+          slug: r.slug,
+          title: r.title,
+          category: cat.title,
+          categorySlug: cat.slug,
+          subcategorySlug: r.subcategorySlug,
+          price: r.price,
+          status: r.status,
+          image: r.image || defaultImage,
+          specs: {},
+          description: r.description,
+          featured: r.featured,
+        };
+        const res = await addProduct(payload);
+        if (res.ok) ok++;
+      }
+      toast.success(`Импорт: добавлено ${ok} из ${rows.length} строк (пропущены строки без совпадения категории)`);
+    } catch (err) {
+      console.error(err);
+      toast.error('Не удалось прочитать Excel');
+    } finally {
+      setImportBusy(false);
+    }
+  };
+
   const submitCategory = async (e: FormEvent) => {
     e.preventDefault();
     if (!categoryForm.title.trim()) return toast.error('Введите название категории');
@@ -104,12 +191,20 @@ const Admin = () => {
     const slug = slugify(categoryForm.slug || categoryForm.title);
     if (!slug) return toast.error('Некорректный slug категории');
 
+    const subs = (categoryForm.subcategories || [])
+      .map(s => ({
+        title: s.title.trim(),
+        slug: slugify(s.slug || s.title),
+      }))
+      .filter(s => s.title && s.slug);
+
     const payload: CategoryForm = {
       ...categoryForm,
       title: categoryForm.title.trim(),
       description: categoryForm.description.trim(),
       icon: categoryForm.icon.trim() || 'Waves',
       slug,
+      subcategories: subs,
     };
 
     if (editingCategoryId) {
@@ -141,12 +236,19 @@ const Admin = () => {
       return toast.error('Цена должна быть числом');
     }
 
+    let subSlug = productForm.subcategorySlug.trim();
+    if (subSlug && subcategoryOptions.length && !subcategoryOptions.some(s => s.slug === subSlug)) {
+      toast.error('Подкатегория не входит в выбранную категорию');
+      return;
+    }
+    if (!subSlug) subSlug = '';
+
     const payload: Omit<Product, 'id'> = {
       slug,
       title: productForm.title.trim(),
       category: category.title,
       categorySlug: category.slug,
-      subcategorySlug: productForm.subcategorySlug.trim() || undefined,
+      subcategorySlug: subSlug || undefined,
       price: parsedPrice,
       status: productForm.status as Availability,
       image: productForm.image.trim() || defaultImage,
@@ -168,70 +270,14 @@ const Admin = () => {
     resetProductForm();
   };
 
-  const signIn = async (e: FormEvent) => {
-    e.preventDefault();
-    const { error } = await supabase.auth.signInWithPassword({
-      email: credentials.email.trim(),
-      password: credentials.password,
-    });
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    toast.success('Вход выполнен');
-    setCredentials({ email: '', password: '' });
-  };
-
-  if (authLoading) {
-    return (
-      <PageLayout>
-        <section className="py-16">
-          <div className="container mx-auto px-4 text-center text-muted-foreground">Проверка доступа...</div>
-        </section>
-      </PageLayout>
-    );
-  }
-
-  if (!session && !isLocalMode) {
-    return (
-      <PageLayout>
-        <PageHeader title="Админ панель" description="Войдите в аккаунт администратора Supabase." breadcrumbs={[{ label: 'Главная', to: '/' }, { label: 'Админ панель' }]} />
-        <section className="py-10">
-          <div className="container mx-auto px-4">
-            <div className="max-w-md mx-auto bg-card rounded-xl border border-border p-5">
-              <h2 className="text-lg font-bold mb-4">Вход администратора</h2>
-              <form onSubmit={signIn} className="space-y-3">
-                <Input placeholder="Email" type="email" value={credentials.email} onChange={e => setCredentials(prev => ({ ...prev, email: e.target.value }))} required />
-                <Input placeholder="Пароль" type="password" value={credentials.password} onChange={e => setCredentials(prev => ({ ...prev, password: e.target.value }))} required />
-                <button type="submit" className="w-full px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium">
-                  Войти
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    localStorage.setItem('garant_force_local_catalog', 'true');
-                    window.location.reload();
-                  }}
-                  className="w-full px-4 py-2 rounded-md bg-secondary text-secondary-foreground text-sm font-medium"
-                >
-                  Временный локальный режим (для GitHub Pages)
-                </button>
-              </form>
-            </div>
-          </div>
-        </section>
-      </PageLayout>
-    );
-  }
-
   return (
     <PageLayout>
       <PageHeader
         title="Админ панель"
         description={
           isLocalMode
-            ? 'Временный локальный режим: изменения сохраняются в localStorage текущего браузера.'
-            : `Управление категориями и товарами через Supabase. Вы вошли как ${session?.user.email}.`
+            ? 'Локальный режим: данные в браузере. Вход: логин admin, пароль admin.'
+            : 'Каталог из Supabase. Вход: логин admin, пароль admin.'
         }
         breadcrumbs={[
           { label: 'Главная', to: '/' },
@@ -241,7 +287,24 @@ const Admin = () => {
 
       <section className="py-8">
         <div className="container mx-auto px-4 space-y-8">
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
+            <Link
+              to="/cabinet"
+              className="px-4 py-2 rounded-xl border border-border bg-card text-sm font-medium hover:bg-secondary transition-colors"
+            >
+              В кабинет
+            </Link>
+            <button
+              type="button"
+              onClick={() => {
+                logoutSiteAdmin();
+                toast.success('Вы вышли');
+                navigate('/cabinet', { replace: true });
+              }}
+              className="px-4 py-2 rounded-xl bg-secondary text-secondary-foreground text-sm font-medium"
+            >
+              Выйти из админки
+            </button>
             {isLocalMode ? (
               <button
                 type="button"
@@ -249,54 +312,100 @@ const Admin = () => {
                   localStorage.removeItem('garant_force_local_catalog');
                   window.location.reload();
                 }}
-                className="px-4 py-2 rounded-md bg-secondary text-secondary-foreground text-sm font-medium"
+                className="px-4 py-2 rounded-xl border border-border text-sm font-medium"
               >
-                Вернуться к Supabase режиму
+                Режим Supabase
               </button>
             ) : (
               <button
                 type="button"
+                onClick={() => {
+                  localStorage.setItem('garant_force_local_catalog', 'true');
+                  window.location.reload();
+                }}
+                className="px-4 py-2 rounded-xl border border-primary/30 text-primary text-sm font-medium"
+              >
+                Локальный режим (Pages)
+              </button>
+            )}
+            {!isLocalMode && (
+              <button
+                type="button"
                 onClick={async () => {
                   await supabase.auth.signOut();
-                  toast.success('Вы вышли из админки');
+                  toast.success('Сессия Supabase сброшена');
                 }}
-                className="px-4 py-2 rounded-md bg-secondary text-secondary-foreground text-sm font-medium"
+                className="px-4 py-2 rounded-xl text-sm border border-border"
               >
-                Выйти
+                Сброс Supabase auth
               </button>
             )}
           </div>
-          {isLoading && <p className="text-sm text-muted-foreground">Загрузка каталога из Supabase...</p>}
+
+          <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-5 space-y-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <FileSpreadsheet className="w-5 h-5 text-primary" />
+              <div>
+                <h3 className="font-semibold text-foreground">Импорт из Excel</h3>
+                <p className="text-sm text-muted-foreground">
+                  Колонки: Название, Категория slug (как в каталоге), опционально — Slug, Подкатегория slug, Цена, Статус, Описание, Фото (URL), Популярный (да/нет).
+                </p>
+              </div>
+            </div>
+            <label className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium cursor-pointer hover:bg-primary/90 disabled:opacity-50">
+              <input type="file" accept=".xlsx,.xls" className="hidden" disabled={importBusy} onChange={onExcelImport} />
+              {importBusy ? 'Импорт…' : 'Выбрать .xlsx / .xls'}
+            </label>
+          </div>
+
+          {isLoading && <p className="text-sm text-muted-foreground">Загрузка каталога…</p>}
+
           <div className="grid lg:grid-cols-2 gap-8">
-            <div className="bg-card rounded-xl border border-border p-5">
+            <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
               <h2 className="text-lg font-bold mb-4">{editingCategoryId ? 'Редактировать категорию' : 'Новая категория'}</h2>
               <form onSubmit={submitCategory} className="space-y-3">
-                <Input
-                  value={categoryForm.title}
-                  onChange={e => setCategoryForm(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder="Название категории"
-                />
-                <Input
-                  value={categoryForm.slug}
-                  onChange={e => setCategoryForm(prev => ({ ...prev, slug: e.target.value }))}
-                  placeholder="Slug (можно оставить пустым)"
-                />
-                <Input
-                  value={categoryForm.icon}
-                  onChange={e => setCategoryForm(prev => ({ ...prev, icon: e.target.value }))}
-                  placeholder="Иконка Lucide (например Waves)"
-                />
-                <Textarea
-                  value={categoryForm.description}
-                  onChange={e => setCategoryForm(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Описание категории"
-                />
-                <div className="flex gap-2">
-                  <button type="submit" className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium">
+                <Input value={categoryForm.title} onChange={e => setCategoryForm(prev => ({ ...prev, title: e.target.value }))} placeholder="Название" />
+                <Input value={categoryForm.slug} onChange={e => setCategoryForm(prev => ({ ...prev, slug: e.target.value }))} placeholder="Slug (необязательно)" />
+                <Input value={categoryForm.icon} onChange={e => setCategoryForm(prev => ({ ...prev, icon: e.target.value }))} placeholder="Иконка Lucide (Waves)" />
+                <Textarea value={categoryForm.description} onChange={e => setCategoryForm(prev => ({ ...prev, description: e.target.value }))} placeholder="Описание" />
+
+                <div className="rounded-xl border border-border p-3 space-y-2 bg-muted/20">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold">Подкатегории</span>
+                    <button type="button" onClick={addSubcategoryRow} className="inline-flex items-center gap-1 text-xs font-medium text-primary">
+                      <Plus className="w-3.5 h-3.5" /> Добавить
+                    </button>
+                  </div>
+                  {(categoryForm.subcategories || []).length === 0 && (
+                    <p className="text-xs text-muted-foreground">Нет подкатегорий — фильтр в каталоге не покажет вложенность.</p>
+                  )}
+                  {(categoryForm.subcategories || []).map((sub, i) => (
+                    <div key={i} className="flex flex-wrap gap-2 items-center">
+                      <Input
+                        className="flex-1 min-w-[120px]"
+                        value={sub.title}
+                        onChange={e => updateSubRow(i, { title: e.target.value })}
+                        placeholder="Название"
+                      />
+                      <Input
+                        className="w-36"
+                        value={sub.slug}
+                        onChange={e => updateSubRow(i, { slug: e.target.value })}
+                        placeholder="slug"
+                      />
+                      <button type="button" onClick={() => removeSubRow(i)} className="p-2 rounded-lg hover:bg-destructive/10 text-destructive" aria-label="Удалить">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex gap-2 pt-1">
+                  <button type="submit" className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium">
                     {editingCategoryId ? 'Сохранить' : 'Добавить'}
                   </button>
                   {editingCategoryId && (
-                    <button type="button" onClick={resetCategoryForm} className="px-4 py-2 rounded-md bg-secondary text-secondary-foreground text-sm font-medium">
+                    <button type="button" onClick={resetCategoryForm} className="px-4 py-2 rounded-xl bg-secondary text-sm">
                       Отмена
                     </button>
                   )}
@@ -304,19 +413,11 @@ const Admin = () => {
               </form>
             </div>
 
-            <div className="bg-card rounded-xl border border-border p-5">
+            <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
               <h2 className="text-lg font-bold mb-4">{editingProductId ? 'Редактировать товар' : 'Новый товар'}</h2>
               <form onSubmit={submitProduct} className="space-y-3">
-                <Input
-                  value={productForm.title}
-                  onChange={e => setProductForm(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder="Название товара"
-                />
-                <Input
-                  value={productForm.slug}
-                  onChange={e => setProductForm(prev => ({ ...prev, slug: e.target.value }))}
-                  placeholder="Slug (можно оставить пустым)"
-                />
+                <Input value={productForm.title} onChange={e => setProductForm(prev => ({ ...prev, title: e.target.value }))} placeholder="Название" />
+                <Input value={productForm.slug} onChange={e => setProductForm(prev => ({ ...prev, slug: e.target.value }))} placeholder="Slug (необязательно)" />
                 <div className="grid grid-cols-2 gap-3">
                   <select
                     value={productForm.categorySlug}
@@ -327,9 +428,10 @@ const Admin = () => {
                         ...prev,
                         categorySlug: slug,
                         category: currentCategory?.title || '',
+                        subcategorySlug: '',
                       }));
                     }}
-                    className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                    className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
                   >
                     <option value="">Категория</option>
                     {sortedCategories.map(category => (
@@ -341,53 +443,70 @@ const Admin = () => {
                   <select
                     value={productForm.status}
                     onChange={e => setProductForm(prev => ({ ...prev, status: e.target.value as Availability }))}
-                    className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                    className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
                   >
                     <option value="available">В наличии</option>
                     <option value="check">Уточнить</option>
                   </select>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <Input
+                  <select
                     value={productForm.subcategorySlug}
                     onChange={e => setProductForm(prev => ({ ...prev, subcategorySlug: e.target.value }))}
-                    placeholder="Subcategory slug (необязательно)"
-                  />
+                    className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
+                    disabled={!subcategoryOptions.length}
+                  >
+                    <option value="">Подкатегория (необязательно)</option>
+                    {subcategoryOptions.map(s => (
+                      <option key={s.slug} value={s.slug}>
+                        {s.title}
+                      </option>
+                    ))}
+                  </select>
                   <Input
                     value={productForm.priceText}
                     onChange={e => setProductForm(prev => ({ ...prev, priceText: e.target.value }))}
-                    placeholder="Цена (например 12500)"
+                    placeholder="Цена"
                   />
                 </div>
-                <Input
-                  value={productForm.image}
-                  onChange={e => setProductForm(prev => ({ ...prev, image: e.target.value }))}
-                  placeholder="URL картинки"
-                />
-                <Textarea
-                  value={productForm.description}
-                  onChange={e => setProductForm(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Описание товара"
-                />
+
+                <div className="flex flex-wrap items-start gap-3 rounded-xl border border-border p-3 bg-muted/15">
+                  <div className="w-20 h-20 rounded-lg border border-border overflow-hidden bg-background shrink-0">
+                    <img src={productForm.image} alt="" className="w-full h-full object-contain" />
+                  </div>
+                  <div className="flex-1 min-w-[200px] space-y-2">
+                    <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary text-sm font-medium cursor-pointer hover:bg-secondary/80">
+                      <ImagePlus className="w-4 h-4" />
+                      Загрузить фото
+                      <input type="file" accept="image/*" className="hidden" onChange={onImageFile} />
+                    </label>
+                    <p className="text-xs text-muted-foreground">Или укажите URL ниже (до 2 МБ для загрузки файла).</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Upload className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <Input
+                    value={productForm.image}
+                    onChange={e => setProductForm(prev => ({ ...prev, image: e.target.value }))}
+                    placeholder="URL картинки"
+                  />
+                </div>
+                <Textarea value={productForm.description} onChange={e => setProductForm(prev => ({ ...prev, description: e.target.value }))} placeholder="Описание" />
                 <Textarea
                   value={productForm.specsText}
                   onChange={e => setProductForm(prev => ({ ...prev, specsText: e.target.value }))}
-                  placeholder={'Характеристики построчно:\nМощность: 1.5 кВт\nНапряжение: 220 В'}
+                  placeholder={'Характеристики:\nПараметр: значение'}
                 />
                 <label className="inline-flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={productForm.featured}
-                    onChange={e => setProductForm(prev => ({ ...prev, featured: e.target.checked }))}
-                  />
-                  Показывать в популярных
+                  <input type="checkbox" checked={productForm.featured} onChange={e => setProductForm(prev => ({ ...prev, featured: e.target.checked }))} />
+                  В блоке «Популярные» на главной
                 </label>
                 <div className="flex gap-2">
-                  <button type="submit" className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium">
+                  <button type="submit" className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium">
                     {editingProductId ? 'Сохранить' : 'Добавить'}
                   </button>
                   {editingProductId && (
-                    <button type="button" onClick={resetProductForm} className="px-4 py-2 rounded-md bg-secondary text-secondary-foreground text-sm font-medium">
+                    <button type="button" onClick={resetProductForm} className="px-4 py-2 rounded-xl bg-secondary text-sm">
                       Отмена
                     </button>
                   )}
@@ -397,14 +516,17 @@ const Admin = () => {
           </div>
 
           <div className="grid lg:grid-cols-2 gap-8">
-            <div className="bg-card rounded-xl border border-border p-5">
-              <h3 className="text-lg font-bold mb-4">Категории ({sortedCategories.length})</h3>
-              <div className="space-y-2 max-h-[420px] overflow-auto pr-1">
+            <div className="bg-card rounded-2xl border border-border p-6 max-h-[520px] flex flex-col shadow-sm">
+              <h3 className="text-lg font-bold mb-4 shrink-0">Категории ({sortedCategories.length})</h3>
+              <div className="space-y-2 overflow-auto pr-1 flex-1">
                 {sortedCategories.map(category => (
-                  <div key={category.id} className="rounded-md border border-border p-3">
+                  <div key={category.id} className="rounded-xl border border-border p-3">
                     <p className="font-semibold">{category.title}</p>
                     <p className="text-sm text-muted-foreground">{category.slug}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{category.productCount} товаров</p>
+                    {(category.subcategories?.length ?? 0) > 0 && (
+                      <p className="text-xs text-muted-foreground mt-1">Подкатегорий: {category.subcategories!.length}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">{category.productCount} товаров</p>
                     <div className="flex gap-2 mt-2">
                       <button
                         type="button"
@@ -415,10 +537,10 @@ const Admin = () => {
                             title: category.title,
                             description: category.description,
                             icon: category.icon,
-                            subcategories: category.subcategories || [],
+                            subcategories: category.subcategories?.length ? [...category.subcategories] : [],
                           });
                         }}
-                        className="px-3 py-1.5 rounded-md text-sm bg-secondary text-secondary-foreground"
+                        className="px-3 py-1.5 rounded-lg text-sm bg-secondary"
                       >
                         Изменить
                       </button>
@@ -427,13 +549,13 @@ const Admin = () => {
                         onClick={async () => {
                           const result = await deleteCategory(category.id);
                           if (!result.ok) {
-                            toast.error(result.message || 'Не удалось удалить категорию');
+                            toast.error(result.message || 'Не удалось удалить');
                             return;
                           }
-                          toast.success('Категория удалена');
+                          toast.success('Удалено');
                           if (editingCategoryId === category.id) resetCategoryForm();
                         }}
-                        className="px-3 py-1.5 rounded-md text-sm bg-destructive text-destructive-foreground"
+                        className="px-3 py-1.5 rounded-lg text-sm bg-destructive text-destructive-foreground"
                       >
                         Удалить
                       </button>
@@ -443,11 +565,11 @@ const Admin = () => {
               </div>
             </div>
 
-            <div className="bg-card rounded-xl border border-border p-5">
-              <h3 className="text-lg font-bold mb-4">Товары ({sortedProducts.length})</h3>
-              <div className="space-y-2 max-h-[420px] overflow-auto pr-1">
+            <div className="bg-card rounded-2xl border border-border p-6 max-h-[520px] flex flex-col shadow-sm">
+              <h3 className="text-lg font-bold mb-4 shrink-0">Товары ({sortedProducts.length})</h3>
+              <div className="space-y-2 overflow-auto pr-1 flex-1">
                 {sortedProducts.map(product => (
-                  <div key={product.id} className="rounded-md border border-border p-3">
+                  <div key={product.id} className="rounded-xl border border-border p-3">
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <p className="font-semibold">{product.title}</p>
@@ -456,7 +578,7 @@ const Admin = () => {
                           {product.price ? `${product.price.toLocaleString('ru-RU')} ₽` : 'Цена по запросу'}
                         </p>
                       </div>
-                      <Link to={`/catalog/${product.slug}`} className="text-xs text-primary hover:underline">
+                      <Link to={`/catalog/${product.slug}`} className="text-xs text-primary hover:underline shrink-0">
                         Открыть
                       </Link>
                     </div>
@@ -480,7 +602,7 @@ const Admin = () => {
                             featured: Boolean(product.featured),
                           });
                         }}
-                        className="px-3 py-1.5 rounded-md text-sm bg-secondary text-secondary-foreground"
+                        className="px-3 py-1.5 rounded-lg text-sm bg-secondary"
                       >
                         Изменить
                       </button>
@@ -489,13 +611,13 @@ const Admin = () => {
                         onClick={async () => {
                           const result = await deleteProduct(product.id);
                           if (!result.ok) {
-                            toast.error(result.message || 'Не удалось удалить товар');
+                            toast.error(result.message || 'Ошибка');
                             return;
                           }
-                          toast.success('Товар удален');
+                          toast.success('Удалено');
                           if (editingProductId === product.id) resetProductForm();
                         }}
-                        className="px-3 py-1.5 rounded-md text-sm bg-destructive text-destructive-foreground"
+                        className="px-3 py-1.5 rounded-lg text-sm bg-destructive text-destructive-foreground"
                       >
                         Удалить
                       </button>

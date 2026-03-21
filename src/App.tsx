@@ -19,6 +19,7 @@ import { CartProvider } from "./context/CartContext";
 import { ScrollToTop } from "./components/ScrollToTop";
 import { CatalogProvider } from "./context/CatalogContext";
 import Admin from "./pages/Admin";
+import Cabinet from "./pages/Cabinet";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +44,7 @@ const App = () => (
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/how-to-order" element={<HowToOrder />} />
               <Route path="/guarantees" element={<Guarantees />} />
+              <Route path="/cabinet" element={<Cabinet />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
