@@ -10,7 +10,7 @@ import {
 } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { Category, Product } from '@/types/product';
-import { supabase } from '@/integrations/supabase/client';
+import { isSupabaseConfigured, supabase, supabaseConfigErrorMessage } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
 
 type CategoryInput = Omit<Category, 'id' | 'productCount'>;
@@ -80,6 +80,14 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
     if (!silent) {
       setIsLoading(true);
       setCatalogError(null);
+    }
+
+    if (!isSupabaseConfigured) {
+      if (!silent) {
+        setCatalogError(supabaseConfigErrorMessage);
+        setIsLoading(false);
+      }
+      return;
     }
 
     const [categoriesRes, productsRes] = await Promise.all([

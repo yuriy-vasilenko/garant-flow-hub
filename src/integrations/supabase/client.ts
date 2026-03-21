@@ -2,11 +2,22 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
+const FALLBACK_SUPABASE_URL = 'https://example.supabase.co';
+const FALLBACK_SUPABASE_PUBLISHABLE_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhbm9uIjp0cnVlfQ.signature';
+
 const SUPABASE_URL =
-  import.meta.env.VITE_SUPABASE_URL || 'https://example.supabase.co';
+  import.meta.env.VITE_SUPABASE_URL || FALLBACK_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY =
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhbm9uIjp0cnVlfQ.signature';
+  FALLBACK_SUPABASE_PUBLISHABLE_KEY;
+
+export const isSupabaseConfigured =
+  SUPABASE_URL !== FALLBACK_SUPABASE_URL &&
+  SUPABASE_PUBLISHABLE_KEY !== FALLBACK_SUPABASE_PUBLISHABLE_KEY;
+
+export const supabaseConfigErrorMessage =
+  'Supabase не настроен в сборке. Проверьте GitHub Secrets: VITE_SUPABASE_URL и VITE_SUPABASE_PUBLISHABLE_KEY.';
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
